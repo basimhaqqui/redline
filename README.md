@@ -1,69 +1,62 @@
-# Video to MP3 Downloader
+# Redline
 
-A Chrome extension that converts YouTube and Twitter/X videos to downloadable MP3 files with a built-in music dashboard and cross-device sync.
+A Chrome extension that rips audio from YouTube and Twitter/X videos into your own personal music library with a full-featured player.
+
+## Features
+
+- **Convert to MP3** from YouTube videos, Shorts, and Twitter/X posts
+- **Built-in music player** with queue, shuffle, repeat, and volume controls
+- **Fullscreen now playing** with Apple Music-style blurred album art backgrounds
+- **Lyrics** fetched automatically from Genius
+- **Album/chapter detection** — automatically splits YouTube videos with chapters into individual tracks
+- **Playlists** — create and manage custom playlists
+- **Liked songs & recently played** views with sorting and grid/list layouts
+- **Track metadata** — auto-fetches artist, album, track number, and artwork from Genius
+- **Dark/light mode**
+- **Google Drive sync** for cross-device library syncing
+- **On-page buttons** — "Add to Library" button injected directly on YouTube watch pages
 
 ## Installation
 
 1. Open Chrome and go to `chrome://extensions/`
 2. Enable **Developer mode** (toggle in top-right corner)
 3. Click **Load unpacked**
-4. Select the `video-to-mp3-extension` folder
+4. Select the extension folder
 5. The extension icon will appear in your toolbar
 
 ## Usage
 
-### Method 1: Popup Interface
-1. Click the extension icon in your toolbar
-2. Either:
-   - Paste a YouTube or Twitter/X video URL into the input field
-   - Click "Detect from current tab" when on a video page
-3. Click "Convert to MP3"
-4. Track is automatically saved to your library
+### Popup
+Click the extension icon, paste a YouTube or Twitter/X URL (or click "Detect from current tab"), and hit **Convert to MP3**. The track is saved to your library automatically.
 
-### Method 2: On YouTube (Direct Button)
-When watching a YouTube video, you'll see an "MP3" button next to the like/dislike buttons.
+### YouTube Direct Button
+On any YouTube video page, click the red **Add to Library** button next to the video actions. If the video has chapters, an **Add Album** button appears to split and save all tracks.
 
-### Music Dashboard
-Click "Open Music Dashboard" to access the full player with playlists, favorites, queue, and playback controls.
+### Library
+Click **Open Library** to access the full dashboard — browse all songs, liked tracks, recent plays, and playlists. Search, sort, rename, and manage your collection.
 
-## Cross-Device Sync (Google Drive)
+## Google Drive Sync
 
-Sync your music library across devices using your Google account.
-
-### Setup
+Sync your library across devices using your Google account.
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or select existing)
-3. Enable the **Google Drive API**:
-   - Go to APIs & Services > Library
-   - Search "Google Drive API" and click Enable
-4. Create OAuth 2.0 credentials:
-   - Go to APIs & Services > Credentials
-   - Click "Create Credentials" > "OAuth client ID"
-   - Application type: **Chrome Extension**
-   - Enter your extension ID (found at `chrome://extensions/`)
-   - Copy the Client ID
-5. Open `manifest.json` and replace `YOUR_CLIENT_ID.apps.googleusercontent.com` with your Client ID
-6. Reload the extension
-
-### Using Sync
-1. Open the Music Dashboard
-2. Click **Sync Now** in the sidebar
-3. Sign in with your Google account when prompted
-4. Your library will sync to Google Drive
-
-## Supported Platforms
-
-- YouTube videos and Shorts
-- Twitter/X videos
+2. Create a project and enable the **Google Drive API**
+3. Create OAuth 2.0 credentials (type: **Chrome Extension**) with your extension ID
+4. Replace the `client_id` in `manifest.json` with yours
+5. Reload the extension, open the dashboard, and click **Sync Now**
 
 ## How It Works
 
-The extension uses the [Cobalt API](https://github.com/imputnet/cobalt), a free and open-source media downloading service, to convert videos to MP3 format (320kbps quality).
+Uses the [Cobalt API](https://github.com/imputnet/cobalt) to convert videos to MP3 (320kbps). You can configure a custom Cobalt instance in settings. Track metadata and lyrics are fetched from the Genius API.
+
+## Supported Platforms
+
+- YouTube (videos and Shorts)
+- Twitter / X
 
 ## Privacy
 
-- Audio files are stored locally in your browser and optionally in your personal Google Drive
+- Audio files are stored locally in your browser (and optionally in your personal Google Drive)
 - Video URLs are sent only to Cobalt API instances for conversion
 - No external tracking or analytics
 
