@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" fill="url(#logoGrad)"/>
+          <path d="M9 8v8l7-4z" fill="white"/>
+          <defs>
+            <linearGradient id="logoGrad" x1="0" y1="0" x2="24" y2="24">
+              <stop offset="0%" stop-color="#ff6b6b"/>
+              <stop offset="100%" stop-color="#ee5a5a"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>MP3 Player</span>
+      </div>
+
+      <nav class="nav">
+        <a href="#" class="nav-item active" data-view="library">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          Library
+        </a>
+        <a href="#" class="nav-item" data-view="playlists">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          Playlists
+        </a>
+        <a href="#" class="nav-item" data-view="favorites">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          Favorites
+        </a>
+        <a href="#" class="nav-item" data-view="recent">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Recent
+        </a>
+      </nav>
+
+      <div class="sidebar-section">
+        <h3>Your Playlists</h3>
+        <div id="playlistList" class="playlist-list">
+          <!-- Playlists will be added here -->
+        </div>
+        <button id="createPlaylistBtn" class="create-playlist-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          New Playlist
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="header">
+        <div class="search-container">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search your music...">
+        </div>
+        <div class="header-actions">
+          <button id="importBtn" class="import-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Import MP3
+          </button>
+          <input type="file" id="fileInput" accept=".mp3,audio/*" multiple hidden>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <!-- Library View -->
+        <section id="libraryView" class="view active">
+          <div class="view-header">
+            <h1>Your Library</h1>
+            <div class="view-controls">
+              <button class="view-btn active" data-layout="grid">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                </svg>
+              </button>
+              <button class="view-btn" data-layout="list">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div id="libraryGrid" class="track-grid">
+            <!-- Tracks will be displayed here -->
+          </div>
+          <div id="emptyLibrary" class="empty-state">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+            <h2>Your library is empty</h2>
+            <p>Import MP3 files or download from YouTube/Twitter</p>
+            <button id="emptyImportBtn" class="primary-btn">Import Music</button>
+          </div>
+        </section>
+
+        <!-- Playlists View -->
+        <section id="playlistsView" class="view">
+          <div class="view-header">
+            <h1>Playlists</h1>
+          </div>
+          <div id="playlistsGrid" class="playlist-grid">
+            <!-- Playlists will be displayed here -->
+          </div>
+        </section>
+
+        <!-- Favorites View -->
+        <section id="favoritesView" class="view">
+          <div class="view-header">
+            <h1>Favorites</h1>
+          </div>
+          <div id="favoritesGrid" class="track-grid">
+            <!-- Favorite tracks will be displayed here -->
+          </div>
+        </section>
+
+        <!-- Recent View -->
+        <section id="recentView" class="view">
+          <div class="view-header">
+            <h1>Recently Played</h1>
+          </div>
+          <div id="recentGrid" class="track-grid">
+            <!-- Recent tracks will be displayed here -->
+          </div>
+        </section>
+
+        <!-- Playlist Detail View -->
+        <section id="playlistDetailView" class="view">
+          <div class="playlist-detail-header">
+            <div class="playlist-cover" id="playlistCover">
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+              </svg>
+            </div>
+            <div class="playlist-info">
+              <span class="playlist-label">PLAYLIST</span>
+              <h1 id="playlistTitle">Playlist Name</h1>
+              <p id="playlistMeta">0 songs</p>
+              <div class="playlist-actions">
+                <button id="playPlaylistBtn" class="play-btn">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  Play
+                </button>
+                <button id="shufflePlaylistBtn" class="shuffle-btn">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 3 21 3 21 8"></polyline>
+                    <line x1="4" y1="20" x2="21" y2="3"></line>
+                    <polyline points="21 16 21 21 16 21"></polyline>
+                    <line x1="15" y1="15" x2="21" y2="21"></line>
+                    <line x1="4" y1="4" x2="9" y2="9"></line>
+                  </svg>
+                  Shuffle
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="playlistTracks" class="track-list">
+            <!-- Playlist tracks will be displayed here -->
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Now Playing Bar -->
+    <footer class="now-playing-bar">
+      <div class="track-info">
+        <div class="track-artwork" id="nowPlayingArt">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18V5l12-2v13"></path>
+            <circle cx="6" cy="18" r="3"></circle>
+            <circle cx="18" cy="16" r="3"></circle>
+          </svg>
+        </div>
+        <div class="track-details">
+          <span class="track-title" id="nowPlayingTitle">No track playing</span>
+          <span class="track-artist" id="nowPlayingArtist">-</span>
+        </div>
+        <button class="favorite-btn" id="favoriteBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="player-controls">
+        <div class="control-buttons">
+          <button class="control-btn" id="shuffleBtn" title="Shuffle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 3 21 3 21 8"></polyline>
+              <line x1="4" y1="20" x2="21" y2="3"></line>
+              <polyline points="21 16 21 21 16 21"></polyline>
+              <line x1="15" y1="15" x2="21" y2="21"></line>
+              <line x1="4" y1="4" x2="9" y2="9"></line>
+            </svg>
+          </button>
+          <button class="control-btn" id="prevBtn" title="Previous">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="19 20 9 12 19 4 19 20"></polygon>
+              <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"></line>
+            </svg>
+          </button>
+          <button class="play-pause-btn" id="playPauseBtn" title="Play">
+            <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <svg class="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          </button>
+          <button class="control-btn" id="nextBtn" title="Next">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 4 15 12 5 20 5 4"></polygon>
+              <line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"></line>
+            </svg>
+          </button>
+          <button class="control-btn" id="repeatBtn" title="Repeat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="17 1 21 5 17 9"></polyline>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+              <polyline points="7 23 3 19 7 15"></polyline>
+              <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="progress-container">
+          <span class="time-current" id="currentTime">0:00</span>
+          <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+            <div class="progress-handle" id="progressHandle"></div>
+          </div>
+          <span class="time-total" id="totalTime">0:00</span>
+        </div>
+      </div>
+
+      <div class="extra-controls">
+        <button class="control-btn" id="queueBtn" title="Queue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+        </button>
+        <div class="volume-container">
+          <button class="control-btn" id="volumeBtn" title="Volume">
+            <svg class="volume-high" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <svg class="volume-mute" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+          </button>
+          <div class="volume-slider">
+            <div class="volume-bar" id="volumeBar">
+              <div class="volume-fill" id="volumeFill"></div>
+              <div class="volume-handle" id="volumeHandle"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Queue Panel -->
+    <div class="queue-panel" id="queuePanel">
+      <div class="queue-header">
+        <h3>Queue</h3>
+        <button class="close-queue" id="closeQueue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="queue-content">
+        <div class="queue-section">
+          <h4>Now Playing</h4>
+          <div id="queueNowPlaying" class="queue-track">
+            <!-- Current track -->
+          </div>
+        </div>
+        <div class="queue-section">
+          <h4>Next Up</h4>
+          <div id="queueList" class="queue-list">
+            <!-- Queue tracks -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+      <button class="context-item" data-action="play">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Play
+      </button>
+      <button class="context-item" data-action="addToQueue">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add to Queue
+      </button>
+      <button class="context-item" data-action="addToPlaylist">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14"></path>
+        </svg>
+        Add to Playlist
+      </button>
+      <button class="context-item" data-action="favorite">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+        </svg>
+        <span>Add to Favorites</span>
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" data-action="delete">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        Delete
+      </button>
+    </div>
+
+    <!-- Create Playlist Modal -->
+    <div class="modal" id="createPlaylistModal">
+      <div class="modal-content">
+        <h2>Create Playlist</h2>
+        <input type="text" id="playlistNameInput" placeholder="Playlist name">
+        <div class="modal-actions">
+          <button class="modal-btn secondary" id="cancelPlaylist">Cancel</button>
+          <button class="modal-btn primary" id="confirmPlaylist">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add to Playlist Modal -->
+    <div class="modal" id="addToPlaylistModal">
+      <div class="modal-content">
+        <h2>Add to Playlist</h2>
+        <div id="playlistOptions" class="playlist-options">
+          <!-- Playlist options will be added here -->
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn secondary" id="cancelAddToPlaylist">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audioPlayer"></audio>
+  <script src="dashboard.js"></script>
+</body>
+</html>
