@@ -300,6 +300,14 @@ class MusicPlayer {
       });
     });
 
+    // Sort dropdown
+    document.getElementById('sortSelect').addEventListener('change', (e) => {
+      const [sortBy, sortDir] = e.target.value.split('-');
+      this.sortBy = sortBy;
+      this.sortDir = sortDir;
+      this.loadLibrary();
+    });
+
     // Import buttons
     document.getElementById('importBtn').addEventListener('click', () => {
       document.getElementById('fileInput').click();
@@ -502,6 +510,14 @@ class MusicPlayer {
     }
   }
 
+  updateSortSelect() {
+    const select = document.getElementById('sortSelect');
+    const val = `${this.sortBy}-${this.sortDir}`;
+    if (select.querySelector(`option[value="${val}"]`)) {
+      select.value = val;
+    }
+  }
+
   sortTracks(tracks) {
     const dir = this.sortDir === 'asc' ? 1 : -1;
 
@@ -590,10 +606,12 @@ class MusicPlayer {
             this.sortBy = col;
             this.sortDir = col === 'dateAdded' ? 'desc' : 'asc';
           }
+          this.updateSortSelect();
           this.loadLibrary();
         });
       });
     } else {
+      this.sortTracks(tracks);
       grid.style.display = 'grid';
       grid.className = 'track-grid';
       grid.innerHTML = tracks.map(track => this.renderTrackCard(track)).join('');
@@ -742,7 +760,6 @@ class MusicPlayer {
         </div>
         <div class="track-name">${title}</div>
         ${artist ? `<div class="track-artist">${artist}</div>` : ''}
-        <div class="track-source">${track.source || 'Local File'}</div>
       </div>
     `;
   }

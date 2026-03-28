@@ -56,8 +56,13 @@ body {
   border: none;
   color: rgba(0, 0, 0, 0.4);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   transition: color 0.15s;
+}
+
+#settingsBtn svg {
+  width: 18px;
+  height: 18px;
 }
 
 #settingsBtn:hover {
@@ -137,13 +142,13 @@ body {
 
 /* Form Area */
 .form-area {
-  padding: 24px;
+  padding: 28px 24px;
 }
 
 .input-group {
   display: flex;
   gap: 0;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   border-bottom: 2px solid #000000;
 }
 
@@ -178,11 +183,11 @@ body {
 
 .secondary-btn {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
+  padding: 10px;
+  border: 1px solid #333333;
   background: transparent;
-  color: #999999;
-  font-size: 11px;
+  color: #777777;
+  font-size: 10px;
   font-family: 'DM Sans', sans-serif;
   letter-spacing: 0.06em;
   cursor: pointer;
@@ -190,13 +195,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   transition: all 0.15s;
 }
 
 .secondary-btn:hover {
-  border-color: #000000;
-  color: #000000;
+  border-color: #c0392b;
+  color: #ffffff;
 }
 
 .secondary-btn svg {
@@ -209,7 +214,7 @@ body {
   width: 100%;
   padding: 16px;
   border: none;
-  background: #000000;
+  background: #c0392b;
   color: #ffffff;
   font-size: 11px;
   font-family: 'DM Sans', sans-serif;
@@ -221,15 +226,16 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: opacity 0.15s;
+  transition: all 0.2s;
 }
 
 .primary-btn:hover:not(:disabled) {
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .primary-btn:disabled {
-  opacity: 0.2;
+  background: #333333;
+  color: #666666;
   cursor: not-allowed;
 }
 
@@ -331,7 +337,7 @@ body {
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .badge {

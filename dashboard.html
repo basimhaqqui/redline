@@ -11,7 +11,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="logo">
-        <span>LIBRARY</span>
+        <span>REDLINE</span>
       </div>
 
       <nav class="nav">
@@ -92,6 +92,14 @@
             <div class="view-meta">
               <span id="trackCount" class="meta-label">0 tracks</span>
               <div class="view-controls">
+                <select id="sortSelect" class="sort-select">
+                  <option value="dateAdded-desc">Date Added</option>
+                  <option value="title-asc">Title A-Z</option>
+                  <option value="title-desc">Title Z-A</option>
+                  <option value="album-asc">Album A-Z</option>
+                  <option value="duration-asc">Duration ↑</option>
+                  <option value="duration-desc">Duration ↓</option>
+                </select>
                 <button class="view-btn active" data-layout="grid">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <rect x="3" y="3" width="7" height="7"></rect>
