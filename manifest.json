@@ -6,7 +6,8 @@
   "permissions": [
     "activeTab",
     "storage",
-    "identity"
+    "identity",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://www.youtube.com/*",
@@ -16,7 +17,7 @@
     "https://*/*"
   ],
   "oauth2": {
-    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "603829748989-991c4706366ushi0v6jdcnurnafentjo.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/drive.file"
     ]
@@ -47,6 +48,5 @@
       ],
       "js": ["content.js"]
     }
-  ],
-  "key": ""
+  ]
 }

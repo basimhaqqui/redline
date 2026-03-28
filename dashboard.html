@@ -11,51 +11,14 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="logo">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" fill="url(#logoGrad)"/>
-          <path d="M9 8v8l7-4z" fill="white"/>
-          <defs>
-            <linearGradient id="logoGrad" x1="0" y1="0" x2="24" y2="24">
-              <stop offset="0%" stop-color="#ff6b6b"/>
-              <stop offset="100%" stop-color="#ee5a5a"/>
-            </linearGradient>
-          </defs>
-        </svg>
-        <span>MP3 Player</span>
+        <span>LIBRARY</span>
       </div>
 
       <nav class="nav">
-        <a href="#" class="nav-item active" data-view="library">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-          </svg>
-          Library
-        </a>
-        <a href="#" class="nav-item" data-view="playlists">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
-          Playlists
-        </a>
-        <a href="#" class="nav-item" data-view="favorites">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-          Favorites
-        </a>
-        <a href="#" class="nav-item" data-view="recent">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          Recent
-        </a>
+        <a href="#" class="nav-item active" data-view="library">All Songs</a>
+        <a href="#" class="nav-item" data-view="playlists">Playlists</a>
+        <a href="#" class="nav-item" data-view="favorites">Liked</a>
+        <a href="#" class="nav-item" data-view="recent">Recent</a>
       </nav>
 
       <div class="sidebar-section sync-section">
@@ -93,27 +56,30 @@
           New Playlist
         </button>
       </div>
+
+      <div class="sidebar-section" style="margin-top:auto;padding-top:20px;">
+        <button id="themeToggle" class="create-playlist-btn">
+          <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span id="themeLabel">Dark Mode</span>
+        </button>
+      </div>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
       <header class="header">
         <div class="search-container">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="11" cy="11" r="8"></circle>
             <path d="m21 21-4.35-4.35"></path>
           </svg>
-          <input type="text" id="searchInput" placeholder="Search your music...">
+          <input type="text" id="searchInput" placeholder="Search">
         </div>
         <div class="header-actions">
-          <button id="importBtn" class="import-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            Import MP3
-          </button>
+          <button id="rescanBtn" class="rescan-btn">Scan Info</button>
+          <button id="importBtn" class="import-btn">Import</button>
           <input type="file" id="fileInput" accept=".mp3,audio/*" multiple hidden>
         </div>
       </header>
@@ -122,23 +88,26 @@
         <!-- Library View -->
         <section id="libraryView" class="view active">
           <div class="view-header">
-            <h1>Your Library</h1>
-            <div class="view-controls">
-              <button class="view-btn active" data-layout="grid">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="3" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="3" width="7" height="7"></rect>
-                  <rect x="3" y="14" width="7" height="7"></rect>
-                  <rect x="14" y="14" width="7" height="7"></rect>
-                </svg>
-              </button>
-              <button class="view-btn" data-layout="list">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <line x1="3" y1="12" x2="21" y2="12"></line>
-                  <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-              </button>
+            <h1>ALL<br>SONGS</h1>
+            <div class="view-meta">
+              <span id="trackCount" class="meta-label">0 tracks</span>
+              <div class="view-controls">
+                <button class="view-btn active" data-layout="grid">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                  </svg>
+                </button>
+                <button class="view-btn" data-layout="list">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
           <div id="libraryGrid" class="track-grid">
@@ -159,7 +128,7 @@
         <!-- Playlists View -->
         <section id="playlistsView" class="view">
           <div class="view-header">
-            <h1>Playlists</h1>
+            <h1>PLAYLISTS</h1>
           </div>
           <div id="playlistsGrid" class="playlist-grid">
             <!-- Playlists will be displayed here -->
@@ -169,7 +138,7 @@
         <!-- Favorites View -->
         <section id="favoritesView" class="view">
           <div class="view-header">
-            <h1>Favorites</h1>
+            <h1>LIKED<br>SONGS</h1>
           </div>
           <div id="favoritesGrid" class="track-grid">
             <!-- Favorite tracks will be displayed here -->
@@ -179,7 +148,7 @@
         <!-- Recent View -->
         <section id="recentView" class="view">
           <div class="view-header">
-            <h1>Recently Played</h1>
+            <h1>RECENTLY<br>PLAYED</h1>
           </div>
           <div id="recentGrid" class="track-grid">
             <!-- Recent tracks will be displayed here -->
@@ -300,6 +269,14 @@
       </div>
 
       <div class="extra-controls">
+        <button class="control-btn" id="lyricsBtn" title="Lyrics">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 6v11"></path>
+            <circle cx="6" cy="17" r="3"></circle>
+            <path d="M9 6l6-2v4"></path>
+            <path d="M18 8h-4M18 11h-3M18 14h-4"></path>
+          </svg>
+        </button>
         <button class="control-btn" id="queueBtn" title="Queue">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -331,6 +308,23 @@
         </div>
       </div>
     </footer>
+
+    <!-- Lyrics Panel -->
+    <div class="lyrics-panel" id="lyricsPanel">
+      <div class="lyrics-header">
+        <h3 id="lyricsTitle">Lyrics</h3>
+        <button class="close-lyrics" id="closeLyrics">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="lyrics-content" id="lyricsContent">
+        <p class="lyrics-placeholder">Play a song to see lyrics</p>
+      </div>
+      <div class="lyrics-credit" id="lyricsCredit"></div>
+    </div>
 
     <!-- Queue Panel -->
     <div class="queue-panel" id="queuePanel">
@@ -380,6 +374,13 @@
         </svg>
         Add to Playlist
       </button>
+      <button class="context-item" data-action="rename">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        Rename
+      </button>
       <button class="context-item" data-action="favorite">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -404,6 +405,21 @@
         <div class="modal-actions">
           <button class="modal-btn secondary" id="cancelPlaylist">Cancel</button>
           <button class="modal-btn primary" id="confirmPlaylist">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div class="modal" id="renameModal">
+      <div class="modal-content">
+        <h2>Rename Track</h2>
+        <label class="modal-label">Title</label>
+        <input type="text" id="renameTitleInput" placeholder="Song title">
+        <label class="modal-label">Artist</label>
+        <input type="text" id="renameArtistInput" placeholder="Artist name">
+        <div class="modal-actions">
+          <button class="modal-btn secondary" id="cancelRename">Cancel</button>
+          <button class="modal-btn primary" id="confirmRename">Save</button>
         </div>
       </div>
     </div>

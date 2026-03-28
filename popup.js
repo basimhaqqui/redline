@@ -137,13 +137,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
       showStatus(`Converted via ${result.instance}! Saving to library...`, 'info');
 
+      // For Twitter, try to get tweet text and thumbnail
+      let trackName = result.filename.replace(/\.[^/.]+$/, '');
+      let thumbnail = platform === 'youtube' ? getYouTubeThumbnail(videoId) : null;
+
+      if (platform === 'twitter') {
+        try {
+          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (tab) {
+            const tweetResp = await new Promise((resolve) => {
+              chrome.tabs.sendMessage(tab.id, { action: 'getTweetText' }, (r) => {
+                resolve(r || {});
+              });
+            });
+            if (tweetResp.text) trackName = tweetResp.text;
+            if (tweetResp.thumbnail) thumbnail = tweetResp.thumbnail;
+          }
+        } catch (e) {
+          // Fallback to filename
+        }
+      }
+
       // Step 2: Save audio + thumbnail to library via background
       const trackInfo = {
         downloadUrl: result.downloadUrl,
-        name: result.filename.replace(/\.[^/.]+$/, ''),
+        name: trackName,
         source: platform === 'youtube' ? 'YouTube' : 'Twitter/X',
         sourceUrl: url,
-        thumbnail: platform === 'youtube' ? getYouTubeThumbnail(videoId) : null
+        thumbnail: thumbnail
       };
 
       try {

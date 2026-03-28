@@ -214,7 +214,7 @@ class MusicPlayer {
     this.isPlaying = false;
     this.isShuffle = false;
     this.repeatMode = 0; // 0: off, 1: all, 2: one
-    this.volume = 0.7;
+    this.volume = 1.0; // 1.0 = 100%, max 2.0 = 200%
     this.currentView = 'library';
     this.currentPlaylistId = null;
     this.contextTrack = null;
@@ -226,11 +226,54 @@ class MusicPlayer {
     await this.db.init();
     this.sync = new DriveSync();
     this.setupEventListeners();
+    this.setupTheme();
     this.loadLibrary();
     this.loadPlaylists();
-    this.audio.volume = this.volume;
+    this.audio.volume = 1; // Keep native volume at max
+    this.setupAudioBoost();
     this.updateVolumeUI();
     this.checkSyncStatus();
+  }
+
+  setupTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+    this.updateThemeUI();
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const isDark = current === 'dark' ||
+        (!current && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const next = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      this.updateThemeUI();
+    });
+  }
+
+  updateThemeUI() {
+    const theme = document.documentElement.getAttribute('data-theme');
+    const isDark = theme === 'dark' ||
+      (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const label = document.getElementById('themeLabel');
+    const icon = document.getElementById('themeIcon');
+    label.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    // Moon for dark mode toggle, sun for light mode toggle
+    icon.innerHTML = isDark
+      ? '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>'
+      : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+  }
+
+  setupAudioBoost() {
+    // Web Audio API gain node allows volume beyond 100%
+    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    this.gainNode = this.audioContext.createGain();
+    const source = this.audioContext.createMediaElementSource(this.audio);
+    source.connect(this.gainNode);
+    this.gainNode.connect(this.audioContext.destination);
+    this.gainNode.gain.value = this.volume; // 0-2 range (0-200%)
   }
 
   setupEventListeners() {
@@ -244,13 +287,16 @@ class MusicPlayer {
     });
 
     // View layout toggle
+    this.layoutMode = 'grid';
+    this.sortBy = 'dateAdded';
+    this.sortDir = 'desc';
     document.querySelectorAll('.view-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const layout = btn.dataset.layout;
         document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        const grid = document.getElementById('libraryGrid');
-        grid.classList.toggle('list-view', layout === 'list');
+        this.layoutMode = layout;
+        this.loadLibrary();
       });
     });
 
@@ -267,6 +313,15 @@ class MusicPlayer {
       this.importFiles(e.target.files);
     });
 
+    document.getElementById('rescanBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('rescanBtn');
+      btn.textContent = 'Scanning...';
+      btn.style.pointerEvents = 'none';
+      await this.rescanLibrary();
+      btn.textContent = 'Scan Info';
+      btn.style.pointerEvents = '';
+    });
+
     // Search
     document.getElementById('searchInput').addEventListener('input', (e) => {
       this.searchTracks(e.target.value);
@@ -280,21 +335,46 @@ class MusicPlayer {
     document.getElementById('repeatBtn').addEventListener('click', () => this.toggleRepeat());
     document.getElementById('favoriteBtn').addEventListener('click', () => this.toggleCurrentFavorite());
 
-    // Progress bar
+    // Progress bar (click + drag)
     const progressBar = document.getElementById('progressBar');
-    progressBar.addEventListener('click', (e) => {
+    const seekFromEvent = (e) => {
       const rect = progressBar.getBoundingClientRect();
-      const percent = (e.clientX - rect.left) / rect.width;
-      this.audio.currentTime = percent * this.audio.duration;
+      const percent = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      if (this.audio.duration) {
+        const track = this.currentTrack;
+        const start = track?.startTime || 0;
+        const end = track?.endTime || this.audio.duration;
+        this.audio.currentTime = start + percent * (end - start);
+      }
+    };
+    progressBar.addEventListener('mousedown', (e) => {
+      seekFromEvent(e);
+      const onMove = (e) => seekFromEvent(e);
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
     });
 
-    // Volume
+    // Volume (click + drag)
     document.getElementById('volumeBtn').addEventListener('click', () => this.toggleMute());
     const volumeBar = document.getElementById('volumeBar');
-    volumeBar.addEventListener('click', (e) => {
+    const setVolumeFromEvent = (e) => {
       const rect = volumeBar.getBoundingClientRect();
-      const percent = (e.clientX - rect.left) / rect.width;
-      this.setVolume(percent);
+      const percent = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      this.setVolume(percent * 2); // 0-200% range
+    };
+    volumeBar.addEventListener('mousedown', (e) => {
+      setVolumeFromEvent(e);
+      const onMove = (e) => setVolumeFromEvent(e);
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
     });
 
     // Audio events
@@ -326,6 +406,12 @@ class MusicPlayer {
       if (e.key === 'Enter') this.createPlaylist();
     });
 
+    // Rename modal
+    document.getElementById('cancelRename').addEventListener('click', () => {
+      document.getElementById('renameModal').classList.remove('show');
+    });
+    document.getElementById('confirmRename').addEventListener('click', () => this.confirmRename());
+
     // Add to playlist modal
     document.getElementById('cancelAddToPlaylist').addEventListener('click', () => {
       document.getElementById('addToPlaylistModal').classList.remove('show');
@@ -351,6 +437,18 @@ class MusicPlayer {
     // Sync
     document.getElementById('syncBtn').addEventListener('click', () => this.startSync());
 
+    // Lyrics
+    document.getElementById('lyricsBtn').addEventListener('click', () => {
+      document.getElementById('lyricsPanel').classList.toggle('open');
+      document.getElementById('queuePanel').classList.remove('open');
+      if (document.getElementById('lyricsPanel').classList.contains('open') && this.currentTrack) {
+        this.loadLyrics();
+      }
+    });
+    document.getElementById('closeLyrics').addEventListener('click', () => {
+      document.getElementById('lyricsPanel').classList.remove('open');
+    });
+
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT') return;
@@ -369,10 +467,10 @@ class MusicPlayer {
           else this.audio.currentTime -= 5;
           break;
         case 'ArrowUp':
-          this.setVolume(Math.min(1, this.volume + 0.1));
+          this.setVolume(Math.min(2, this.volume + 0.2));
           break;
         case 'ArrowDown':
-          this.setVolume(Math.max(0, this.volume - 0.1));
+          this.setVolume(Math.max(0, this.volume - 0.2));
           break;
       }
     });
@@ -404,6 +502,45 @@ class MusicPlayer {
     }
   }
 
+  sortTracks(tracks) {
+    const dir = this.sortDir === 'asc' ? 1 : -1;
+
+    tracks.sort((a, b) => {
+      if (this.sortBy === 'title') {
+        return dir * (a.title || a.name || '').localeCompare(b.title || b.name || '');
+      }
+      if (this.sortBy === 'album') {
+        const albumA = (a.album || '').toLowerCase();
+        const albumB = (b.album || '').toLowerCase();
+        // Songs without album go to the end
+        if (!albumA && albumB) return 1;
+        if (albumA && !albumB) return -1;
+        if (!albumA && !albumB) return 0;
+        // Same album: sort by track number from Genius
+        if (albumA === albumB) {
+          const numA = a.trackNumber || 999;
+          const numB = b.trackNumber || 999;
+          return numA - numB;
+        }
+        return dir * albumA.localeCompare(albumB);
+      }
+      if (this.sortBy === 'dateAdded') {
+        const dateA = a.dateAdded || '';
+        const dateB = b.dateAdded || '';
+        return dir * dateA.localeCompare(dateB);
+      }
+      if (this.sortBy === 'duration') {
+        const durA = a.duration || 0;
+        const durB = b.duration || 0;
+        // Songs without duration go to the end
+        if (!durA && durB) return 1;
+        if (durA && !durB) return -1;
+        return dir * (durA - durB);
+      }
+      return 0;
+    });
+  }
+
   async loadLibrary() {
     const tracks = await this.db.getAllTracks();
     const grid = document.getElementById('libraryGrid');
@@ -415,10 +552,52 @@ class MusicPlayer {
       return;
     }
 
-    grid.style.display = 'grid';
     empty.style.display = 'none';
 
-    grid.innerHTML = tracks.map(track => this.renderTrackCard(track)).join('');
+    const trackCount = document.getElementById('trackCount');
+    if (trackCount) trackCount.textContent = `${tracks.length} track${tracks.length !== 1 ? 's' : ''}`;
+
+    if (this.layoutMode === 'list') {
+      this.sortTracks(tracks);
+      grid.style.display = 'block';
+      grid.className = 'track-table';
+      const arrow = (col) => {
+        if (this.sortBy !== col) return '';
+        return this.sortDir === 'asc' ? ' ▲' : ' ▼';
+      };
+      grid.innerHTML = `
+        <div class="track-table-header">
+          <span class="col-num">#</span>
+          <span class="col-title sort-header${this.sortBy === 'title' ? ' active' : ''}" data-sort="title">Title${arrow('title')}</span>
+          <span class="col-album sort-header${this.sortBy === 'album' ? ' active' : ''}" data-sort="album">Album${arrow('album')}</span>
+          <span class="col-date sort-header${this.sortBy === 'dateAdded' ? ' active' : ''}" data-sort="dateAdded">Date Added${arrow('dateAdded')}</span>
+          <span class="col-duration sort-header${this.sortBy === 'duration' ? ' active' : ''}" data-sort="duration">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>${arrow('duration')}
+          </span>
+        </div>
+        ${tracks.map((track, i) => this.renderTrackRow(track, i + 1)).join('')}
+      `;
+      // Attach sort header click listeners
+      grid.querySelectorAll('.sort-header').forEach(header => {
+        header.addEventListener('click', () => {
+          const col = header.dataset.sort;
+          if (this.sortBy === col) {
+            this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+          } else {
+            this.sortBy = col;
+            this.sortDir = col === 'dateAdded' ? 'desc' : 'asc';
+          }
+          this.loadLibrary();
+        });
+      });
+    } else {
+      grid.style.display = 'grid';
+      grid.className = 'track-grid';
+      grid.innerHTML = tracks.map(track => this.renderTrackCard(track)).join('');
+    }
     this.attachTrackListeners(grid);
   }
 
@@ -470,8 +649,78 @@ class MusicPlayer {
     this.attachTrackListeners(grid);
   }
 
+  // Get title and artist from track
+  splitTrackName(track) {
+    // Use dedicated fields if set by iTunes lookup
+    if (track.artist && track.title) {
+      return { title: track.title, artist: track.artist };
+    }
+    // No lookup data — show full name as title, no artist guess
+    return { title: track.name, artist: '' };
+  }
+
+  // Re-scan all tracks — fill in missing artist/title/album/trackNumber
+  async rescanLibrary() {
+    const tracks = await this.db.getAllTracks();
+    if (tracks.length === 0) return;
+
+    for (const track of tracks) {
+      const needsInfo = !track.artist || !track.title;
+      const needsAlbum = !track.album || !track.trackNumber || !track.thumbnail;
+
+      if (!needsInfo && !needsAlbum) continue;
+
+      // If missing artist/title, do a full lookup using the filename/name
+      if (needsInfo) {
+        try {
+          const searchName = track.originalName || track.name;
+          const resp = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ action: 'lookupTrack', name: searchName }, (r) => {
+              if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+              else resolve(r);
+            });
+          });
+          if (resp && resp.artist) {
+            track.artist = resp.artist;
+            track.title = resp.title;
+            track.name = `${resp.artist} - ${resp.title}`;
+            if (resp.album) track.album = resp.album;
+            if (resp.trackNumber) track.trackNumber = resp.trackNumber;
+            if (resp.thumbnail && !track.thumbnail) track.thumbnail = resp.thumbnail;
+            await this.db.updateTrack(track);
+            continue; // already got album from full lookup
+          }
+        } catch (e) {
+          console.log('Rescan lookup failed for:', track.name, e);
+        }
+      }
+
+      // If only missing album/trackNumber, fetch just that
+      if (needsAlbum) {
+        const { title, artist } = this.splitTrackName(track);
+        try {
+          const resp = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ action: 'fetchAlbum', title, artist }, (r) => {
+              if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+              else resolve(r);
+            });
+          });
+          let updated = false;
+          if (resp.album) { track.album = resp.album; updated = true; }
+          if (resp.trackNumber) { track.trackNumber = resp.trackNumber; updated = true; }
+          if (resp.thumbnail && !track.thumbnail) { track.thumbnail = resp.thumbnail; updated = true; }
+          if (updated) await this.db.updateTrack(track);
+        } catch (e) {
+          console.log('Rescan album failed for:', track.name, e);
+        }
+      }
+    }
+    this.loadLibrary();
+  }
+
   renderTrackCard(track) {
     const thumbnail = track.thumbnail || '';
+    const { title, artist } = this.splitTrackName(track);
     return `
       <div class="track-card" data-id="${track.id}">
         <div class="track-artwork-container">
@@ -491,17 +740,79 @@ class MusicPlayer {
             </svg>
           </div>
         </div>
-        <div class="track-name">${track.name}</div>
+        <div class="track-name">${title}</div>
+        ${artist ? `<div class="track-artist">${artist}</div>` : ''}
         <div class="track-source">${track.source || 'Local File'}</div>
       </div>
     `;
   }
 
+  renderTrackRow(track, index) {
+    const thumbnail = track.thumbnail || '';
+    const { title, artist } = this.splitTrackName(track);
+    const dateAdded = track.dateAdded ? this.formatDateAdded(track.dateAdded) : '';
+    const duration = track.duration ? this.formatDuration(track.duration) : '-';
+    const album = track.album || '';
+    return `
+      <div class="track-row track-card" data-id="${track.id}">
+        <span class="col-num">${index}</span>
+        <div class="col-title">
+          <div class="track-row-art">
+            ${thumbnail ?
+              `<img src="${thumbnail}" alt="${track.name}">` :
+              `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+              </svg>`
+            }
+          </div>
+          <div class="track-row-info">
+            <div class="track-row-name">${title}</div>
+            ${artist ? `<div class="track-row-artist">${artist}</div>` : ''}
+          </div>
+        </div>
+        <span class="col-album">${album}</span>
+        <span class="col-date">${dateAdded}</span>
+        <span class="col-duration">${duration}</span>
+      </div>
+    `;
+  }
+
+  formatDuration(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  formatDateAdded(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) !== 1 ? 's' : ''} ago`;
+
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
   attachTrackListeners(container) {
     container.querySelectorAll('.track-card').forEach(card => {
-      card.addEventListener('click', () => {
+      card.addEventListener('click', async () => {
         const id = parseInt(card.dataset.id);
+
+        // Auto-queue all tracks in the current view (like Spotify Liked Songs)
+        const allCards = container.querySelectorAll('.track-card');
+        const allIds = Array.from(allCards).map(c => parseInt(c.dataset.id));
+        this.queue = allIds;
+        this.queueIndex = allIds.indexOf(id);
+
         this.playTrack(id);
+        this.updateQueueUI();
       });
 
       card.addEventListener('contextmenu', (e) => {
@@ -520,29 +831,33 @@ class MusicPlayer {
 
     // Try playing from stored audio data
     try {
-      // Convert base64 data URL to blob URL for better playback support
-      if (track.audioData && track.audioData.startsWith('data:')) {
+      if (track.audioData) {
+        // Convert data URL to blob URL for reliable playback
         const response = await fetch(track.audioData);
         const blob = await response.blob();
-        // Ensure correct MIME type
-        const audioBlob = blob.type.startsWith('audio/')
-          ? blob
-          : new Blob([blob], { type: 'audio/mpeg' });
-        const blobUrl = URL.createObjectURL(audioBlob);
 
         // Revoke previous blob URL to prevent memory leaks
         if (this._currentBlobUrl) {
           URL.revokeObjectURL(this._currentBlobUrl);
         }
-        this._currentBlobUrl = blobUrl;
-        this.audio.src = blobUrl;
-      } else if (track.audioData) {
-        this.audio.src = track.audioData;
+        this._currentBlobUrl = URL.createObjectURL(blob);
+        this.audio.src = this._currentBlobUrl;
+
+        // If track has start time (album chapter), seek to it once loaded
+        if (track.startTime) {
+          this.audio.addEventListener('loadedmetadata', () => {
+            this.audio.currentTime = track.startTime;
+          }, { once: true });
+        }
       } else {
         console.error('No audio data for track:', track.name);
         return;
       }
 
+      // Resume AudioContext on user interaction (browser requirement)
+      if (this.audioContext && this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
       await this.audio.play();
     } catch (err) {
       console.error('Playback error:', err);
@@ -589,30 +904,58 @@ class MusicPlayer {
   updateNowPlaying() {
     if (!this.currentTrack) return;
 
-    document.getElementById('nowPlayingTitle').textContent = this.currentTrack.name;
-    document.getElementById('nowPlayingArtist').textContent = this.currentTrack.source || 'Local File';
+    const { title, artist } = this.splitTrackName(this.currentTrack);
+    document.getElementById('nowPlayingTitle').textContent = title;
+    document.getElementById('nowPlayingArtist').textContent = artist || this.currentTrack.source || 'Local File';
 
     const artContainer = document.getElementById('nowPlayingArt');
     if (this.currentTrack.thumbnail) {
-      artContainer.innerHTML = `<img src="${this.currentTrack.thumbnail}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`;
+      artContainer.innerHTML = `<img src="${this.currentTrack.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
     }
 
     // Update favorite button
     const favBtn = document.getElementById('favoriteBtn');
     favBtn.classList.toggle('active', this.currentTrack.favorite);
+
+    // Auto-load lyrics if panel is open
+    if (document.getElementById('lyricsPanel').classList.contains('open')) {
+      this.loadLyrics();
+    }
   }
 
   updateProgress() {
     if (!this.audio.duration) return;
 
-    const percent = (this.audio.currentTime / this.audio.duration) * 100;
+    const track = this.currentTrack;
+    const start = track?.startTime || 0;
+    const end = track?.endTime || this.audio.duration;
+    const duration = end - start;
+    const current = this.audio.currentTime - start;
+
+    // If chapter track reached its end, go to next
+    if (track?.endTime && this.audio.currentTime >= track.endTime) {
+      this.handleTrackEnd();
+      return;
+    }
+
+    const percent = Math.max(0, Math.min(100, (current / duration) * 100));
     document.getElementById('progressFill').style.width = `${percent}%`;
     document.getElementById('progressHandle').style.left = `${percent}%`;
-    document.getElementById('currentTime').textContent = this.formatTime(this.audio.currentTime);
+    document.getElementById('currentTime').textContent = this.formatTime(Math.max(0, current));
   }
 
   updateDuration() {
-    document.getElementById('totalTime').textContent = this.formatTime(this.audio.duration);
+    const track = this.currentTrack;
+    const start = track?.startTime || 0;
+    const end = track?.endTime || this.audio.duration;
+    const duration = end - start;
+    document.getElementById('totalTime').textContent = this.formatTime(duration);
+
+    // Store duration on track if not already set
+    if (track && !track.duration && duration > 0 && isFinite(duration)) {
+      track.duration = duration;
+      this.db.updateTrack(track);
+    }
   }
 
   formatTime(seconds) {
@@ -628,11 +971,16 @@ class MusicPlayer {
       this.audio.currentTime = 0;
       this.audio.play();
     } else if (this.queue.length > 0 && this.queueIndex < this.queue.length - 1) {
+      // Play next track in queue
       this.playNext();
-    } else if (this.repeatMode === 1 && this.queue.length > 0) {
-      // Repeat all
+    } else if (this.queue.length > 0 && this.repeatMode === 1) {
+      // Repeat all - loop back to start
       this.queueIndex = 0;
       this.playTrack(this.queue[0]);
+      this.updateQueueUI();
+    } else if (this.queue.length > 0 && this.isShuffle) {
+      // Shuffle mode - pick a random track even at end of queue
+      this.playNext();
     } else {
       this.isPlaying = false;
       this.updatePlayPauseUI();
@@ -712,13 +1060,15 @@ class MusicPlayer {
   }
 
   setVolume(value) {
-    this.volume = Math.max(0, Math.min(1, value));
-    this.audio.volume = this.volume;
+    this.volume = Math.max(0, Math.min(2, value)); // 0-200%
+    if (this.gainNode) {
+      this.gainNode.gain.value = this.volume;
+    }
     this.updateVolumeUI();
   }
 
   updateVolumeUI() {
-    const percent = this.volume * 100;
+    const percent = Math.min(100, Math.max(0, (this.volume / 2) * 100)); // map 0-2 to 0-100%
     document.getElementById('volumeFill').style.width = `${percent}%`;
     document.getElementById('volumeHandle').style.left = `${percent}%`;
 
@@ -733,7 +1083,7 @@ class MusicPlayer {
       this.previousVolume = this.volume;
       this.setVolume(0);
     } else {
-      this.setVolume(this.previousVolume || 0.7);
+      this.setVolume(this.previousVolume || 1.4);
     }
   }
 
@@ -744,10 +1094,40 @@ class MusicPlayer {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const audioData = e.target.result;
-        const name = file.name.replace(/\.[^/.]+$/, '');
+        const rawName = file.name.replace(/\.[^/.]+$/, '');
+
+        // Look up artist/title/album from Genius using the filename
+        let title = rawName;
+        let artist = '';
+        let album = '';
+        let trackNumber = null;
+
+        try {
+          const resp = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ action: 'lookupTrack', name: rawName }, (r) => {
+              if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+              else resolve(r);
+            });
+          });
+          if (resp) {
+            title = resp.title || rawName;
+            artist = resp.artist || '';
+            album = resp.album || '';
+            trackNumber = resp.trackNumber || null;
+          }
+        } catch (err) {
+          console.log('Lookup failed for import:', rawName, err);
+        }
+
+        const name = artist ? `${artist} - ${title}` : title;
 
         await this.db.addTrack({
           name,
+          originalName: rawName,
+          title,
+          artist,
+          album,
+          trackNumber,
           source: 'Local File',
           audioData,
           thumbnail: null,
@@ -809,6 +1189,9 @@ class MusicPlayer {
       case 'addToPlaylist':
         this.showAddToPlaylistModal();
         break;
+      case 'rename':
+        this.showRenameModal();
+        break;
       case 'favorite':
         await this.toggleFavorite(this.contextTrack);
         break;
@@ -838,6 +1221,41 @@ class MusicPlayer {
       this.currentTrack = null;
       document.getElementById('nowPlayingTitle').textContent = 'No track playing';
       document.getElementById('nowPlayingArtist').textContent = '-';
+    }
+  }
+
+  async showRenameModal() {
+    const track = await this.db.getTrack(this.contextTrack);
+    if (!track) return;
+
+    const { title, artist } = this.splitTrackName(track);
+    document.getElementById('renameTitleInput').value = title;
+    document.getElementById('renameArtistInput').value = artist;
+    document.getElementById('renameModal').classList.add('show');
+    document.getElementById('renameTitleInput').focus();
+  }
+
+  async confirmRename() {
+    const title = document.getElementById('renameTitleInput').value.trim();
+    const artist = document.getElementById('renameArtistInput').value.trim();
+
+    if (!title) return;
+
+    const track = await this.db.getTrack(this.contextTrack);
+    if (!track) return;
+
+    track.title = title;
+    track.artist = artist;
+    track.name = artist ? `${artist} - ${title}` : title;
+    await this.db.updateTrack(track);
+
+    document.getElementById('renameModal').classList.remove('show');
+    this.loadLibrary();
+
+    // Update now playing if this is the current track
+    if (this.currentTrack && this.currentTrack.id === track.id) {
+      this.currentTrack = track;
+      this.updateNowPlaying();
     }
   }
 
@@ -1073,6 +1491,46 @@ class MusicPlayer {
           </div>
         `).join('');
       });
+    }
+  }
+
+  // ---- Lyrics ----
+
+  async loadLyrics() {
+    const content = document.getElementById('lyricsContent');
+    const credit = document.getElementById('lyricsCredit');
+    const titleEl = document.getElementById('lyricsTitle');
+
+    if (!this.currentTrack) {
+      content.innerHTML = '<p class="lyrics-placeholder">Play a song to see lyrics</p>';
+      credit.innerHTML = '';
+      return;
+    }
+
+    const { title, artist } = this.splitTrackName(this.currentTrack);
+    titleEl.textContent = title;
+    content.innerHTML = '<p class="lyrics-loading">Finding lyrics...</p>';
+    credit.innerHTML = '';
+
+    try {
+      const resp = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(
+          { action: 'fetchLyrics', title, artist },
+          (r) => {
+            if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+            else if (!r || !r.success) reject(new Error(r?.error || 'Failed'));
+            else resolve(r.data);
+          }
+        );
+      });
+
+      content.textContent = resp.lyrics;
+      credit.innerHTML = `Lyrics via <a href="${resp.songUrl}" target="_blank">Genius</a>`;
+
+    } catch (err) {
+      console.log('Lyrics error:', err);
+      content.innerHTML = `<p class="lyrics-error">Lyrics not found for this track</p>`;
+      credit.innerHTML = '';
     }
   }
 

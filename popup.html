@@ -8,78 +8,81 @@
 </head>
 <body>
   <div class="container">
-    <h1>Video to MP3</h1>
-    <p class="subtitle">Convert YouTube & Twitter videos to MP3</p>
-
-    <div class="settings-toggle">
-      <button id="settingsBtn" title="Settings">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"></path>
-        </svg>
-      </button>
+    <div class="hero">
+      <div class="settings-toggle">
+        <button id="settingsBtn" title="Settings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"></path>
+          </svg>
+        </button>
+      </div>
+      <h1>VIDEO<br>TO MP3</h1>
+      <p class="subtitle">YouTube & Twitter/X</p>
     </div>
 
     <div id="settingsPanel" class="settings-panel hidden">
-      <label>Cobalt Instance URL:</label>
+      <label>Cobalt Instance URL</label>
       <input type="text" id="cobaltUrl" placeholder="https://your-instance.com/">
-      <p class="hint">Leave empty for default. Get instances from <a href="https://instances.cobalt.best/" target="_blank">instances.cobalt.best</a></p>
+      <p class="hint">Find instances at <a href="https://instances.cobalt.best/" target="_blank">instances.cobalt.best</a></p>
       <button id="saveSettings" class="save-btn">Save</button>
     </div>
 
-    <div class="input-group">
-      <input type="text" id="urlInput" placeholder="Paste video URL here...">
-      <button id="pasteBtn" title="Paste from clipboard">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+    <div class="form-area">
+      <div class="input-group">
+        <input type="text" id="urlInput" placeholder="Paste video URL">
+        <button id="pasteBtn" title="Paste from clipboard">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+          </svg>
+        </button>
+      </div>
+
+      <button id="detectBtn" class="secondary-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
         </svg>
+        Detect from current tab
       </button>
-    </div>
 
-    <button id="detectBtn" class="secondary-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.35-4.35"></path>
-      </svg>
-      Detect from current tab
-    </button>
-
-    <button id="convertBtn" class="primary-btn" disabled>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="7 10 12 15 17 10"></polyline>
-        <line x1="12" y1="15" x2="12" y2="3"></line>
-      </svg>
-      <span>Convert to MP3</span>
-    </button>
-
-    <div id="status" class="status"></div>
-
-    <div id="downloadSection" class="download-section hidden">
-      <a id="downloadLink" class="download-btn" download>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button id="convertBtn" class="primary-btn" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        Download MP3
-      </a>
-    </div>
+        <span>Convert to MP3</span>
+      </button>
 
-    <div class="supported">
-      <span class="badge youtube">YouTube</span>
-      <span class="badge twitter">Twitter/X</span>
-    </div>
+      <div id="status" class="status"></div>
 
-    <button id="openDashboard" class="dashboard-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M9 18V5l12-2v13"></path>
-        <circle cx="6" cy="18" r="3"></circle>
-        <circle cx="18" cy="16" r="3"></circle>
-      </svg>
-      Open Music Dashboard
-    </button>
+      <div id="downloadSection" class="download-section hidden">
+        <a id="downloadLink" class="download-btn" download>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Download MP3
+        </a>
+      </div>
+
+      <div class="supported">
+        <span class="badge youtube">YouTube</span>
+        <span class="badge twitter">Twitter / X</span>
+      </div>
+
+      <button id="openDashboard" class="dashboard-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 18V5l12-2v13"></path>
+          <circle cx="6" cy="18" r="3"></circle>
+          <circle cx="18" cy="16" r="3"></circle>
+        </svg>
+        Open Library
+      </button>
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>
