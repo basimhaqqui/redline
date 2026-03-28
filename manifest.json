@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Video to MP3 Downloader",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Convert YouTube and Twitter/X videos to downloadable MP3 files",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "identity"
   ],
   "host_permissions": [
     "https://www.youtube.com/*",
@@ -14,6 +15,12 @@
     "https://x.com/*",
     "https://*/*"
   ],
+  "oauth2": {
+    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -40,5 +47,6 @@
       ],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "key": ""
 }

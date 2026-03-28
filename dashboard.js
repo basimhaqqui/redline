@@ -224,11 +224,13 @@ class MusicPlayer {
 
   async init() {
     await this.db.init();
+    this.sync = new DriveSync();
     this.setupEventListeners();
     this.loadLibrary();
     this.loadPlaylists();
     this.audio.volume = this.volume;
     this.updateVolumeUI();
+    this.checkSyncStatus();
   }
 
   setupEventListeners() {
@@ -345,6 +347,9 @@ class MusicPlayer {
     // Playlist actions
     document.getElementById('playPlaylistBtn')?.addEventListener('click', () => this.playPlaylist());
     document.getElementById('shufflePlaylistBtn')?.addEventListener('click', () => this.shufflePlaylist());
+
+    // Sync
+    document.getElementById('syncBtn').addEventListener('click', () => this.startSync());
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -1068,6 +1073,78 @@ class MusicPlayer {
           </div>
         `).join('');
       });
+    }
+  }
+
+  // ---- Sync Methods ----
+
+  async checkSyncStatus() {
+    try {
+      const signedIn = await this.sync.isSignedIn();
+      const dot = document.querySelector('.sync-dot');
+      const text = document.getElementById('syncText');
+
+      if (signedIn) {
+        dot.className = 'sync-dot online';
+        text.textContent = 'Connected to Google';
+      } else {
+        dot.className = 'sync-dot offline';
+        text.textContent = 'Not connected';
+      }
+    } catch (err) {
+      console.log('Sync status check failed:', err);
+    }
+  }
+
+  async startSync() {
+    const syncBtn = document.getElementById('syncBtn');
+    const syncBtnText = document.getElementById('syncBtnText');
+    const syncProgress = document.getElementById('syncProgress');
+    const syncProgressFill = document.getElementById('syncProgressFill');
+    const syncProgressText = document.getElementById('syncProgressText');
+    const dot = document.querySelector('.sync-dot');
+    const syncText = document.getElementById('syncText');
+
+    if (this.sync.isSyncing) return;
+
+    syncBtn.classList.add('syncing');
+    syncBtnText.textContent = 'Syncing...';
+    syncProgress.classList.remove('hidden');
+    dot.className = 'sync-dot syncing';
+    syncText.textContent = 'Syncing...';
+
+    try {
+      const result = await this.sync.sync(this.db, (message, current, total) => {
+        const percent = total > 0 ? (current / total) * 100 : 0;
+        syncProgressFill.style.width = `${percent}%`;
+        syncProgressText.textContent = message;
+      });
+
+      dot.className = 'sync-dot online';
+      syncText.textContent = 'Synced just now';
+      syncProgressText.textContent = `Done! ${result.uploaded} uploaded, ${result.downloaded} downloaded`;
+
+      // Reload library to show new tracks
+      this.loadLibrary();
+      this.loadPlaylists();
+
+      // Hide progress after 3 seconds
+      setTimeout(() => {
+        syncProgress.classList.add('hidden');
+      }, 3000);
+
+    } catch (err) {
+      console.error('Sync failed:', err);
+      dot.className = 'sync-dot offline';
+      syncText.textContent = 'Sync failed';
+      syncProgressText.textContent = err.message;
+
+      setTimeout(() => {
+        syncProgress.classList.add('hidden');
+      }, 5000);
+    } finally {
+      syncBtn.classList.remove('syncing');
+      syncBtnText.textContent = 'Sync Now';
     }
   }
 }

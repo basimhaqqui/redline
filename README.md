@@ -1,6 +1,6 @@
 # Video to MP3 Downloader
 
-A Chrome extension that converts YouTube and Twitter/X videos to downloadable MP3 files.
+A Chrome extension that converts YouTube and Twitter/X videos to downloadable MP3 files with a built-in music dashboard and cross-device sync.
 
 ## Installation
 
@@ -18,10 +18,39 @@ A Chrome extension that converts YouTube and Twitter/X videos to downloadable MP
    - Paste a YouTube or Twitter/X video URL into the input field
    - Click "Detect from current tab" when on a video page
 3. Click "Convert to MP3"
-4. Click "Download MP3" when ready
+4. Track is automatically saved to your library
 
 ### Method 2: On YouTube (Direct Button)
 When watching a YouTube video, you'll see an "MP3" button next to the like/dislike buttons.
+
+### Music Dashboard
+Click "Open Music Dashboard" to access the full player with playlists, favorites, queue, and playback controls.
+
+## Cross-Device Sync (Google Drive)
+
+Sync your music library across devices using your Google account.
+
+### Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select existing)
+3. Enable the **Google Drive API**:
+   - Go to APIs & Services > Library
+   - Search "Google Drive API" and click Enable
+4. Create OAuth 2.0 credentials:
+   - Go to APIs & Services > Credentials
+   - Click "Create Credentials" > "OAuth client ID"
+   - Application type: **Chrome Extension**
+   - Enter your extension ID (found at `chrome://extensions/`)
+   - Copy the Client ID
+5. Open `manifest.json` and replace `YOUR_CLIENT_ID.apps.googleusercontent.com` with your Client ID
+6. Reload the extension
+
+### Using Sync
+1. Open the Music Dashboard
+2. Click **Sync Now** in the sidebar
+3. Sign in with your Google account when prompted
+4. Your library will sync to Google Drive
 
 ## Supported Platforms
 
@@ -30,19 +59,13 @@ When watching a YouTube video, you'll see an "MP3" button next to the like/disli
 
 ## How It Works
 
-The extension uses the [Cobalt API v10](https://github.com/imputnet/cobalt), a free and open-source media downloading service, to convert videos to MP3 format (320kbps quality).
-
-## Troubleshooting
-
-- **"Conversion failed"**: The video might be private, age-restricted, or unavailable
-- **Button not appearing on YouTube**: Refresh the page or disable conflicting extensions
-- **Download not starting**: Check your browser's download settings
+The extension uses the [Cobalt API](https://github.com/imputnet/cobalt), a free and open-source media downloading service, to convert videos to MP3 format (320kbps quality).
 
 ## Privacy
 
-- No data is stored or tracked
-- Video URLs are sent only to the Cobalt API for conversion
-- No account required
+- Audio files are stored locally in your browser and optionally in your personal Google Drive
+- Video URLs are sent only to Cobalt API instances for conversion
+- No external tracking or analytics
 
 ## Disclaimer
 

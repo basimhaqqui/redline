@@ -58,6 +58,28 @@
         </a>
       </nav>
 
+      <div class="sidebar-section sync-section">
+        <h3>Cloud Sync</h3>
+        <div id="syncStatus" class="sync-status">
+          <span class="sync-dot offline"></span>
+          <span id="syncText">Not connected</span>
+        </div>
+        <button id="syncBtn" class="sync-btn">
+          <svg class="sync-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span id="syncBtnText">Sync Now</span>
+        </button>
+        <div id="syncProgress" class="sync-progress hidden">
+          <div class="sync-progress-bar">
+            <div class="sync-progress-fill" id="syncProgressFill"></div>
+          </div>
+          <span class="sync-progress-text" id="syncProgressText">Syncing...</span>
+        </div>
+      </div>
+
       <div class="sidebar-section">
         <h3>Your Playlists</h3>
         <div id="playlistList" class="playlist-list">
@@ -401,6 +423,7 @@
   </div>
 
   <audio id="audioPlayer"></audio>
+  <script src="sync.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>
