@@ -16,10 +16,23 @@
 
       <nav class="nav">
         <a href="#" class="nav-item active" data-view="library">All Songs</a>
-        <a href="#" class="nav-item" data-view="playlists">Playlists</a>
         <a href="#" class="nav-item" data-view="favorites">Liked</a>
         <a href="#" class="nav-item" data-view="recent">Recent</a>
       </nav>
+
+      <div class="sidebar-section">
+        <h3>Playlists</h3>
+        <div id="playlistList" class="playlist-list">
+          <!-- Playlists will be added here -->
+        </div>
+        <button id="createPlaylistBtn" class="create-playlist-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          New Playlist
+        </button>
+      </div>
 
       <div class="sidebar-section sync-section">
         <h3>Cloud Sync</h3>
@@ -41,20 +54,6 @@
           </div>
           <span class="sync-progress-text" id="syncProgressText">Syncing...</span>
         </div>
-      </div>
-
-      <div class="sidebar-section">
-        <h3>Your Playlists</h3>
-        <div id="playlistList" class="playlist-list">
-          <!-- Playlists will be added here -->
-        </div>
-        <button id="createPlaylistBtn" class="create-playlist-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          New Playlist
-        </button>
       </div>
 
       <div class="sidebar-section" style="margin-top:auto;padding-top:20px;">
@@ -147,6 +146,34 @@
         <section id="favoritesView" class="view">
           <div class="view-header">
             <h1>LIKED<br>SONGS</h1>
+            <div class="view-meta">
+              <span id="favCount" class="meta-label"></span>
+              <div class="view-controls">
+                <select class="sort-select sub-sort" data-target="favorites">
+                  <option value="dateAdded-desc">Date Added</option>
+                  <option value="title-asc">Title A-Z</option>
+                  <option value="title-desc">Title Z-A</option>
+                  <option value="album-asc">Album A-Z</option>
+                  <option value="duration-asc">Duration ↑</option>
+                  <option value="duration-desc">Duration ↓</option>
+                </select>
+                <button class="view-btn sub-view-btn active" data-layout="grid" data-target="favorites">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                  </svg>
+                </button>
+                <button class="view-btn sub-view-btn" data-layout="list" data-target="favorites">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
           <div id="favoritesGrid" class="track-grid">
             <!-- Favorite tracks will be displayed here -->
@@ -157,6 +184,34 @@
         <section id="recentView" class="view">
           <div class="view-header">
             <h1>RECENTLY<br>PLAYED</h1>
+            <div class="view-meta">
+              <span id="recentCount" class="meta-label"></span>
+              <div class="view-controls">
+                <select class="sort-select sub-sort" data-target="recent">
+                  <option value="dateAdded-desc">Date Added</option>
+                  <option value="title-asc">Title A-Z</option>
+                  <option value="title-desc">Title Z-A</option>
+                  <option value="album-asc">Album A-Z</option>
+                  <option value="duration-asc">Duration ↑</option>
+                  <option value="duration-desc">Duration ↓</option>
+                </select>
+                <button class="view-btn sub-view-btn active" data-layout="grid" data-target="recent">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                  </svg>
+                </button>
+                <button class="view-btn sub-view-btn" data-layout="list" data-target="recent">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
           <div id="recentGrid" class="track-grid">
             <!-- Recent tracks will be displayed here -->
@@ -314,8 +369,106 @@
             </div>
           </div>
         </div>
+        <button class="control-btn" id="expandBtn" title="Expand">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <polyline points="9 21 3 21 3 15"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+        </button>
       </div>
     </footer>
+
+    <!-- Fullscreen Now Playing -->
+    <div class="now-playing-full" id="nowPlayingFull">
+      <button class="npf-close" id="npfClose">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="4 14 10 14 10 20"></polyline>
+          <polyline points="20 10 14 10 14 4"></polyline>
+          <line x1="14" y1="10" x2="21" y2="3"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+      </button>
+      <div class="npf-artwork" id="npfArtwork"></div>
+      <div class="npf-info">
+        <div class="npf-info-row">
+          <div class="npf-info-text">
+            <div class="npf-title" id="npfTitle">No track playing</div>
+            <div class="npf-artist" id="npfArtist"></div>
+          </div>
+          <button class="npf-btn" id="npfLikeTop" title="Like">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="npf-controls">
+        <div class="npf-progress">
+          <span class="npf-time" id="npfCurrentTime">0:00</span>
+          <div class="npf-progress-bar" id="npfProgressBar">
+            <div class="npf-progress-fill" id="npfProgressFill"></div>
+            <div class="npf-progress-handle" id="npfProgressHandle"></div>
+          </div>
+          <span class="npf-time" id="npfTotalTime">0:00</span>
+        </div>
+        <div class="npf-buttons">
+          <button class="npf-btn" id="npfShuffle" title="Shuffle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 3 21 3 21 8"></polyline>
+              <line x1="4" y1="20" x2="21" y2="3"></line>
+              <polyline points="21 16 21 21 16 21"></polyline>
+              <line x1="15" y1="15" x2="21" y2="21"></line>
+              <line x1="4" y1="4" x2="9" y2="9"></line>
+            </svg>
+          </button>
+          <button class="npf-btn" id="npfPrev" title="Previous">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="19 20 9 12 19 4 19 20"></polygon>
+              <line x1="5" y1="19" x2="5" y2="5"></line>
+            </svg>
+          </button>
+          <button class="npf-play-btn" id="npfPlayPause" title="Play/Pause">
+            <svg class="npf-play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <svg class="npf-pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          </button>
+          <button class="npf-btn" id="npfNext" title="Next">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 4 15 12 5 20 5 4"></polygon>
+              <line x1="19" y1="5" x2="19" y2="19"></line>
+            </svg>
+          </button>
+          <button class="npf-btn" id="npfRepeat" title="Repeat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="17 1 21 5 17 9"></polyline>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+              <polyline points="7 23 3 19 7 15"></polyline>
+              <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="npf-extras">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          </svg>
+          <div class="npf-volume">
+            <div class="npf-volume-bar" id="npfVolumeBar">
+              <div class="npf-volume-fill" id="npfVolumeFill"></div>
+            </div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
 
     <!-- Lyrics Panel -->
     <div class="lyrics-panel" id="lyricsPanel">
