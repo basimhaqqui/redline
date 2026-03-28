@@ -300,12 +300,37 @@ class MusicPlayer {
       });
     });
 
-    // Sort dropdown
+    // Sort dropdowns (main + sub views)
+    this.subLayouts = { favorites: 'grid', recent: 'grid' };
+    this.subSorts = { favorites: { by: 'dateAdded', dir: 'desc' }, recent: { by: 'dateAdded', dir: 'desc' } };
+
     document.getElementById('sortSelect').addEventListener('change', (e) => {
       const [sortBy, sortDir] = e.target.value.split('-');
       this.sortBy = sortBy;
       this.sortDir = sortDir;
       this.loadLibrary();
+    });
+
+    document.querySelectorAll('.sub-sort').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const target = sel.dataset.target;
+        const [sortBy, sortDir] = e.target.value.split('-');
+        this.subSorts[target] = { by: sortBy, dir: sortDir };
+        if (target === 'favorites') this.loadFavorites();
+        else if (target === 'recent') this.loadRecent();
+      });
+    });
+
+    document.querySelectorAll('.sub-view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        const layout = btn.dataset.layout;
+        document.querySelectorAll(`.sub-view-btn[data-target="${target}"]`).forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.subLayouts[target] = layout;
+        if (target === 'favorites') this.loadFavorites();
+        else if (target === 'recent') this.loadRecent();
+      });
     });
 
     // Import buttons
@@ -457,11 +482,56 @@ class MusicPlayer {
       document.getElementById('lyricsPanel').classList.remove('open');
     });
 
+    // Fullscreen now playing
+    document.getElementById('expandBtn').addEventListener('click', () => {
+      if (this.currentTrack) {
+        this.updateNowPlayingBg();
+        this.updateNpfControls();
+        document.getElementById('nowPlayingFull').classList.add('open');
+      }
+    });
+    document.getElementById('npfClose').addEventListener('click', () => {
+      document.getElementById('nowPlayingFull').classList.remove('open');
+    });
+
+    // NPF controls
+    document.getElementById('npfPlayPause').addEventListener('click', () => this.togglePlay());
+    document.getElementById('npfNext').addEventListener('click', () => this.playNext());
+    document.getElementById('npfPrev').addEventListener('click', () => this.playPrevious());
+    document.getElementById('npfShuffle').addEventListener('click', () => {
+      this.isShuffle = !this.isShuffle;
+      document.getElementById('npfShuffle').classList.toggle('active', this.isShuffle);
+      document.getElementById('shuffleBtn').classList.toggle('active', this.isShuffle);
+    });
+    document.getElementById('npfRepeat').addEventListener('click', () => {
+      this.toggleRepeat();
+      document.getElementById('npfRepeat').classList.toggle('active', this.repeatMode > 0);
+    });
+    document.getElementById('npfLikeTop').addEventListener('click', () => {
+      this.toggleCurrentFavorite();
+      this.updateNpfControls();
+    });
+
+    // NPF progress bar seeking (click + drag)
+    this.setupDragBar('npfProgressBar', (percent) => {
+      const start = this.currentTrack?.startTime || 0;
+      const end = this.currentTrack?.endTime || this.audio.duration;
+      this.audio.currentTime = start + percent * (end - start);
+    });
+
+    // NPF volume bar (click + drag)
+    this.setupDragBar('npfVolumeBar', (percent) => {
+      this.setVolume(percent * 2); // 0-2 range
+    });
+
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT') return;
 
       switch (e.code) {
+        case 'Escape':
+          document.getElementById('nowPlayingFull').classList.remove('open');
+          break;
         case 'Space':
           e.preventDefault();
           this.togglePlay();
@@ -508,6 +578,42 @@ class MusicPlayer {
         this.loadPlaylistsView();
         break;
     }
+  }
+
+  renderSubView(grid, tracks, viewName) {
+    const sort = this.subSorts[viewName];
+    const layout = this.subLayouts[viewName];
+    const origSort = { by: this.sortBy, dir: this.sortDir };
+    this.sortBy = sort.by;
+    this.sortDir = sort.dir;
+    this.sortTracks(tracks);
+    this.sortBy = origSort.by;
+    this.sortDir = origSort.dir;
+
+    if (layout === 'list') {
+      grid.style.display = 'block';
+      grid.className = 'track-table';
+      grid.innerHTML = `
+        <div class="track-table-header">
+          <span class="col-num">#</span>
+          <span class="col-title">Title</span>
+          <span class="col-album">Album</span>
+          <span class="col-date">Date Added</span>
+          <span class="col-duration">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </span>
+        </div>
+        ${tracks.map((track, i) => this.renderTrackRow(track, i + 1)).join('')}
+      `;
+    } else {
+      grid.style.display = 'grid';
+      grid.className = 'track-grid';
+      grid.innerHTML = tracks.map(track => this.renderTrackCard(track)).join('');
+    }
+    this.attachTrackListeners(grid);
   }
 
   updateSortSelect() {
@@ -624,6 +730,8 @@ class MusicPlayer {
     const grid = document.getElementById('favoritesGrid');
 
     if (tracks.length === 0) {
+      grid.style.display = 'flex';
+      grid.className = 'track-grid';
       grid.innerHTML = `
         <div class="empty-state">
           <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
@@ -636,8 +744,10 @@ class MusicPlayer {
       return;
     }
 
-    grid.innerHTML = tracks.map(track => this.renderTrackCard(track)).join('');
-    this.attachTrackListeners(grid);
+    const countEl = document.getElementById('favCount');
+    if (countEl) countEl.textContent = `${tracks.length} track${tracks.length !== 1 ? 's' : ''}`;
+
+    this.renderSubView(grid, tracks, 'favorites');
   }
 
   async loadRecent() {
@@ -663,8 +773,11 @@ class MusicPlayer {
     );
 
     const validTracks = tracks.filter(t => t);
-    grid.innerHTML = validTracks.map(track => this.renderTrackCard(track)).join('');
-    this.attachTrackListeners(grid);
+
+    const countEl = document.getElementById('recentCount');
+    if (countEl) countEl.textContent = `${validTracks.length} track${validTracks.length !== 1 ? 's' : ''}`;
+
+    this.renderSubView(grid, validTracks, 'recent');
   }
 
   // Get title and artist from track
@@ -684,7 +797,8 @@ class MusicPlayer {
 
     for (const track of tracks) {
       const needsInfo = !track.artist || !track.title;
-      const needsAlbum = !track.album || !track.trackNumber || !track.thumbnail;
+      const hasGeniusThumb = track.thumbnail && track.thumbnail.includes('images.genius.com');
+      const needsAlbum = !track.album || !track.trackNumber || !hasGeniusThumb;
 
       if (!needsInfo && !needsAlbum) continue;
 
@@ -704,7 +818,8 @@ class MusicPlayer {
             track.name = `${resp.artist} - ${resp.title}`;
             if (resp.album) track.album = resp.album;
             if (resp.trackNumber) track.trackNumber = resp.trackNumber;
-            if (resp.thumbnail && !track.thumbnail) track.thumbnail = resp.thumbnail;
+            if (resp.thumbnail) track.thumbnail = resp.thumbnail;
+            if (resp.artworkFull) track.artworkFull = resp.artworkFull;
             await this.db.updateTrack(track);
             continue; // already got album from full lookup
           }
@@ -726,7 +841,8 @@ class MusicPlayer {
           let updated = false;
           if (resp.album) { track.album = resp.album; updated = true; }
           if (resp.trackNumber) { track.trackNumber = resp.trackNumber; updated = true; }
-          if (resp.thumbnail && !track.thumbnail) { track.thumbnail = resp.thumbnail; updated = true; }
+          if (resp.thumbnail) { track.thumbnail = resp.thumbnail; updated = true; }
+          if (resp.artworkFull) { track.artworkFull = resp.artworkFull; updated = true; }
           if (updated) await this.db.updateTrack(track);
         } catch (e) {
           console.log('Rescan album failed for:', track.name, e);
@@ -752,10 +868,17 @@ class MusicPlayer {
               </svg>`
             }
           </div>
-          <div class="track-play-overlay">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
+          <div class="track-overlay-controls">
+            <button class="track-like-btn${track.favorite ? ' active' : ''}" data-like-id="${track.id}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="${track.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+            </button>
+            <div class="track-play-overlay">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+            </div>
           </div>
         </div>
         <div class="track-name">${title}</div>
@@ -792,6 +915,11 @@ class MusicPlayer {
         <span class="col-album">${album}</span>
         <span class="col-date">${dateAdded}</span>
         <span class="col-duration">${duration}</span>
+        <button class="track-like-btn row-like${track.favorite ? ' active' : ''}" data-like-id="${track.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="${track.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
       </div>
     `;
   }
@@ -836,6 +964,25 @@ class MusicPlayer {
         e.preventDefault();
         const id = parseInt(card.dataset.id);
         this.showContextMenu(e, id);
+      });
+    });
+
+    // Like buttons on hover overlay
+    container.querySelectorAll('.track-like-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = parseInt(btn.dataset.likeId);
+        const track = await this.db.getTrack(id);
+        if (!track) return;
+        track.favorite = !track.favorite;
+        await this.db.updateTrack(track);
+        btn.classList.toggle('active', track.favorite);
+        btn.querySelector('svg').setAttribute('fill', track.favorite ? 'currentColor' : 'none');
+        // Update now playing bar if this is the current track
+        if (this.currentTrack && this.currentTrack.id === id) {
+          this.currentTrack.favorite = track.favorite;
+          document.getElementById('favoriteBtn').classList.toggle('active', track.favorite);
+        }
       });
     });
   }
@@ -916,6 +1063,9 @@ class MusicPlayer {
 
     playIcon.style.display = this.isPlaying ? 'none' : 'block';
     pauseIcon.style.display = this.isPlaying ? 'block' : 'none';
+
+    // Sync fullscreen play/pause
+    this.updateNpfControls();
   }
 
   updateNowPlaying() {
@@ -934,10 +1084,140 @@ class MusicPlayer {
     const favBtn = document.getElementById('favoriteBtn');
     favBtn.classList.toggle('active', this.currentTrack.favorite);
 
+    // Update fullscreen now playing — use full res artwork
+    document.getElementById('npfTitle').textContent = title;
+    document.getElementById('npfArtist').textContent = artist || '';
+    const npfArt = document.getElementById('npfArtwork');
+    const fullArt = this.currentTrack.artworkFull || this.currentTrack.thumbnail;
+    if (fullArt) {
+      npfArt.innerHTML = `<img src="${fullArt}">`;
+    }
+
     // Auto-load lyrics if panel is open
     if (document.getElementById('lyricsPanel').classList.contains('open')) {
       this.loadLyrics();
     }
+  }
+
+  setupDragBar(elementId, onUpdate) {
+    const bar = document.getElementById(elementId);
+    let dragging = false;
+
+    const getPercent = (e) => {
+      const rect = bar.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    };
+
+    bar.addEventListener('mousedown', (e) => {
+      dragging = true;
+      onUpdate(getPercent(e));
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (dragging) onUpdate(getPercent(e));
+    });
+
+    document.addEventListener('mouseup', () => {
+      dragging = false;
+    });
+
+    bar.addEventListener('click', (e) => {
+      onUpdate(getPercent(e));
+    });
+  }
+
+  updateNpfControls() {
+    if (!document.getElementById('nowPlayingFull').classList.contains('open')) return;
+
+    // Update play/pause icon
+    const npfBtn = document.getElementById('npfPlayPause');
+    if (npfBtn) {
+      const playIcon = npfBtn.querySelector('.npf-play-icon');
+      const pauseIcon = npfBtn.querySelector('.npf-pause-icon');
+      if (playIcon) playIcon.style.display = this.isPlaying ? 'none' : 'block';
+      if (pauseIcon) pauseIcon.style.display = this.isPlaying ? 'block' : 'none';
+    }
+
+    // Update like button
+    const likeBtn = document.getElementById('npfLikeTop');
+    if (this.currentTrack && likeBtn) {
+      likeBtn.classList.toggle('active', this.currentTrack.favorite);
+      likeBtn.querySelector('svg').setAttribute('fill', this.currentTrack.favorite ? 'currentColor' : 'none');
+    }
+
+    // Update shuffle/repeat
+    document.getElementById('npfShuffle').classList.toggle('active', this.isShuffle);
+    document.getElementById('npfRepeat').classList.toggle('active', this.repeatMode > 0);
+
+    // Update volume
+    const volPercent = Math.min(100, (this.volume / 2) * 100);
+    document.getElementById('npfVolumeFill').style.width = `${volPercent}%`;
+  }
+
+  extractColors(src) {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 8;
+      canvas.height = 8;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, 8, 8);
+        const colors = [];
+        // Sample corners and center for dominant colors
+        const points = [
+          [0, 0], [7, 0], [0, 7], [7, 7], // corners
+          [3, 3], [4, 4], [2, 5], [5, 2],  // center area
+        ];
+        for (const [x, y] of points) {
+          const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+          colors.push(`rgb(${r}, ${g}, ${b})`);
+        }
+        resolve(colors);
+      };
+      img.onerror = () => resolve(['#c0392b', '#1a1a2e', '#16213e', '#0f3460', '#533483']);
+      img.src = src;
+    });
+  }
+
+  async updateNowPlayingBg() {
+    const container = document.getElementById('nowPlayingFull');
+    container.querySelectorAll('.npf-bg-layer').forEach(el => el.remove());
+
+    const src = this.currentTrack?.artworkFull || this.currentTrack?.thumbnail;
+    if (!src) return;
+
+    // Blurred album art background (Apple Music style)
+    const bgImg = document.createElement('img');
+    bgImg.className = 'npf-bg-layer';
+    bgImg.crossOrigin = 'anonymous';
+    bgImg.src = src;
+    bgImg.style.cssText = `
+      position: absolute;
+      inset: -15%;
+      width: 130%;
+      height: 130%;
+      object-fit: cover;
+      filter: blur(80px) saturate(1.4);
+      z-index: 0;
+      pointer-events: none;
+      animation: npfBgDrift 30s ease-in-out infinite;
+    `;
+    container.insertBefore(bgImg, container.firstChild);
+
+    // Dim overlay so text stays readable
+    const overlay = document.createElement('div');
+    overlay.className = 'npf-bg-layer';
+    overlay.style.cssText = `
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 0;
+      pointer-events: none;
+    `;
+    container.insertBefore(overlay, bgImg.nextSibling);
   }
 
   updateProgress() {
@@ -959,6 +1239,14 @@ class MusicPlayer {
     document.getElementById('progressFill').style.width = `${percent}%`;
     document.getElementById('progressHandle').style.left = `${percent}%`;
     document.getElementById('currentTime').textContent = this.formatTime(Math.max(0, current));
+
+    // Update fullscreen progress
+    if (document.getElementById('nowPlayingFull').classList.contains('open')) {
+      document.getElementById('npfProgressFill').style.width = `${percent}%`;
+      document.getElementById('npfProgressHandle').style.left = `${percent}%`;
+      document.getElementById('npfCurrentTime').textContent = this.formatTime(Math.max(0, current));
+      document.getElementById('npfTotalTime').textContent = this.formatTime(duration);
+    }
   }
 
   updateDuration() {
@@ -1093,6 +1381,10 @@ class MusicPlayer {
     const muteIcon = document.querySelector('.volume-mute');
     highIcon.style.display = this.volume > 0 ? 'block' : 'none';
     muteIcon.style.display = this.volume === 0 ? 'block' : 'none';
+
+    // Sync fullscreen volume
+    const npfFill = document.getElementById('npfVolumeFill');
+    if (npfFill) npfFill.style.width = `${percent}%`;
   }
 
   toggleMute() {
@@ -1529,6 +1821,9 @@ class MusicPlayer {
     content.innerHTML = '<p class="lyrics-loading">Finding lyrics...</p>';
     credit.innerHTML = '';
 
+    // Set artwork gradient background
+    this.updateLyricsBg();
+
     try {
       const resp = await new Promise((resolve, reject) => {
         chrome.runtime.sendMessage(
@@ -1549,6 +1844,47 @@ class MusicPlayer {
       content.innerHTML = `<p class="lyrics-error">Lyrics not found for this track</p>`;
       credit.innerHTML = '';
     }
+  }
+
+  async updateLyricsBg() {
+    const panel = document.getElementById('lyricsPanel');
+    panel.querySelectorAll('.lyrics-bg-layer').forEach(el => el.remove());
+    panel.classList.remove('has-bg');
+
+    const src = this.currentTrack?.artworkFull || this.currentTrack?.thumbnail;
+    if (!src) return;
+
+    // Blurred album art background (Apple Music style)
+    const bgImg = document.createElement('img');
+    bgImg.className = 'lyrics-bg-layer';
+    bgImg.crossOrigin = 'anonymous';
+    bgImg.src = src;
+    bgImg.style.cssText = `
+      position: absolute;
+      inset: -20%;
+      width: 140%;
+      height: 140%;
+      object-fit: cover;
+      filter: blur(70px) saturate(1.4);
+      z-index: 0;
+      pointer-events: none;
+      animation: lyricsBgDrift 25s ease-in-out infinite;
+    `;
+    panel.insertBefore(bgImg, panel.firstChild);
+
+    // Dim overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'lyrics-bg-layer';
+    overlay.style.cssText = `
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 0;
+      pointer-events: none;
+    `;
+    panel.insertBefore(overlay, bgImg.nextSibling);
+
+    panel.classList.add('has-bg');
   }
 
   // ---- Sync Methods ----

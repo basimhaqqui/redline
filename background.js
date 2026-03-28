@@ -202,6 +202,7 @@ async function lookupTrackInfo(rawName) {
       if (albumInfo.name) result.album = albumInfo.name;
       if (albumInfo.trackNumber) result.trackNumber = albumInfo.trackNumber;
       if (albumInfo.thumbnail) result.thumbnail = albumInfo.thumbnail;
+      if (albumInfo.artworkFull) result.artworkFull = albumInfo.artworkFull;
     } catch (e) {
       console.log('[background] Album fetch failed:', e.message);
     }
@@ -209,6 +210,7 @@ async function lookupTrackInfo(rawName) {
   if (!result.album) result.album = '';
   if (!result.trackNumber) result.trackNumber = null;
   if (!result.thumbnail) result.thumbnail = '';
+  if (!result.artworkFull) result.artworkFull = '';
   return result;
 }
 
@@ -218,8 +220,9 @@ async function fetchGeniusAlbum(songId) {
   const song = data?.response?.song;
   const album = song?.album;
   const thumbnail = song?.song_art_image_thumbnail_url || '';
+  const artworkFull = song?.song_art_image_url || '';
 
-  if (!album) return { name: '', trackNumber: null, thumbnail };
+  if (!album) return { name: '', trackNumber: null, thumbnail, artworkFull };
 
   // Fetch track number from album tracklist
   let trackNumber = null;
@@ -233,7 +236,7 @@ async function fetchGeniusAlbum(songId) {
     console.log('[background] Track number fetch failed:', e.message);
   }
 
-  return { name: album.name || '', trackNumber, thumbnail };
+  return { name: album.name || '', trackNumber, thumbnail, artworkFull };
 }
 
 async function fetchAlbumForTrack(title, artist) {
@@ -280,11 +283,11 @@ async function fetchAlbumForTrack(title, artist) {
       const albumInfo = await fetchGeniusAlbum(song.id);
       // Normalize edition names: "BULLY (First Pressing Edition)" → "BULLY"
       const albumName = albumInfo.name.replace(/\s*\(.*?(edition|deluxe|version|remaster|expanded|bonus).*?\)\s*$/i, '').trim();
-      return { album: albumName, trackNumber: albumInfo.trackNumber, thumbnail: albumInfo.thumbnail };
+      return { album: albumName, trackNumber: albumInfo.trackNumber, thumbnail: albumInfo.thumbnail, artworkFull: albumInfo.artworkFull };
     }
   }
 
-  return { album: '', trackNumber: null, thumbnail: '' };
+  return { album: '', trackNumber: null, thumbnail: '', artworkFull: '' };
 }
 
 function fuzzyTitleMatch(a, b) {
@@ -574,6 +577,46 @@ async function handleSaveAlbum(albumInfo) {
   }
 }
 
+// ---- Fetch synced lyrics from LRCLIB ----
+
+async function fetchSyncedLyrics(title, artist) {
+  const params = new URLSearchParams({ artist_name: artist, track_name: title });
+  const resp = await fetch(`https://lrclib.net/api/get?${params}`);
+  if (!resp.ok) return null;
+
+  const data = await resp.json();
+  if (data.syncedLyrics) {
+    // Parse LRC format: [mm:ss.xx] text
+    const lines = data.syncedLyrics.split('\n').map(line => {
+      const match = line.match(/^\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)/);
+      if (!match) return null;
+      const mins = parseInt(match[1]);
+      const secs = parseInt(match[2]);
+      const ms = parseInt(match[3].padEnd(3, '0'));
+      return { time: mins * 60 + secs + ms / 1000, text: match[4] };
+    }).filter(l => l !== null);
+
+    if (lines.length > 0) {
+      return {
+        synced: true,
+        lines,
+        plainText: lines.map(l => l.text).join('\n')
+      };
+    }
+  }
+
+  // Fall back to plain lyrics from LRCLIB if available
+  if (data.plainLyrics) {
+    return {
+      synced: false,
+      lines: null,
+      plainText: data.plainLyrics
+    };
+  }
+
+  return null;
+}
+
 // ---- Fetch lyrics from Genius ----
 
 async function fetchLyrics(title, artist) {
@@ -627,69 +670,124 @@ async function fetchLyrics(title, artist) {
 }
 
 function extractLyricsFromHTML(html) {
-  // Find all data-lyrics-container sections by tracking nested divs
+  // Method 1: Try __PRELOADED_STATE__ JSON (most reliable, has full lyrics)
+  const preloadMatch = html.match(/window\.__PRELOADED_STATE__\s*=\s*JSON\.parse\('(.+?)'\)/s);
+  if (preloadMatch) {
+    try {
+      // Genius double-escapes the JSON string
+      const jsonStr = preloadMatch[1]
+        .replace(/\\'/g, "'")
+        .replace(/\\\\"/g, '\\"')
+        .replace(/\\\\/g, '\\');
+      const data = JSON.parse(jsonStr);
+      const lyricsData = findInPreloadedState(data, 'lyrics');
+      if (lyricsData && lyricsData.plain) {
+        console.log('[background] Extracted lyrics from __PRELOADED_STATE__');
+        return cleanLyricsText(lyricsData.plain);
+      }
+    } catch (e) {
+      console.log('[background] Preloaded state parse failed, falling back to HTML');
+    }
+  }
+
+  // Method 2: Extract from data-lyrics-container elements in HTML
   const lyrics = [];
-  const marker = 'data-lyrics-container="true"';
-  let searchFrom = 0;
+  const containerRegex = /data-lyrics-container="true"[^>]*>([\s\S]*?)(?=<div[^>]*data-lyrics-container="true"|<div[^>]*class="LyricsFooter|<div[^>]*class="RightSidebar|$)/gi;
+  let match;
 
-  while (true) {
-    const start = html.indexOf(marker, searchFrom);
-    if (start === -1) break;
+  while ((match = containerRegex.exec(html)) !== null) {
+    let chunk = match[1];
 
-    // Find the opening > of this element
-    const tagStart = html.lastIndexOf('<', start);
-    const tagEnd = html.indexOf('>', start);
-    if (tagEnd === -1) break;
-
-    // Track nested divs to find the matching closing </div>
-    let depth = 1;
-    let pos = tagEnd + 1;
-    while (depth > 0 && pos < html.length) {
-      const nextOpen = html.indexOf('<div', pos);
-      const nextClose = html.indexOf('</div>', pos);
-
-      if (nextClose === -1) break;
-
-      if (nextOpen !== -1 && nextOpen < nextClose) {
-        depth++;
-        pos = nextOpen + 4;
-      } else {
-        depth--;
-        if (depth === 0) {
-          const content = html.substring(tagEnd + 1, nextClose);
-          lyrics.push(content);
+    // The chunk may include trailing </div> tags from the container — strip them
+    // Count unclosed divs and trim the matching closing tags from the end
+    const opens = (chunk.match(/<div[\s>]/gi) || []).length;
+    const closes = (chunk.match(/<\/div>/gi) || []).length;
+    const excess = closes - opens;
+    if (excess > 0) {
+      // Remove the last N </div> tags (they belong to parent containers)
+      for (let i = 0; i < excess; i++) {
+        const lastClose = chunk.lastIndexOf('</div>');
+        if (lastClose !== -1) {
+          chunk = chunk.substring(0, lastClose);
         }
-        pos = nextClose + 6;
       }
     }
 
-    searchFrom = pos;
+    lyrics.push(chunk);
   }
 
-  // Process the extracted HTML chunks
+  // Method 3: Fallback — manual div depth tracking
+  if (lyrics.length === 0) {
+    const marker = 'data-lyrics-container="true"';
+    let searchFrom = 0;
+
+    while (true) {
+      const start = html.indexOf(marker, searchFrom);
+      if (start === -1) break;
+
+      const tagEnd = html.indexOf('>', start);
+      if (tagEnd === -1) break;
+
+      let depth = 1;
+      let pos = tagEnd + 1;
+      while (depth > 0 && pos < html.length) {
+        const nextOpen = html.indexOf('<div', pos);
+        const nextClose = html.indexOf('</div>', pos);
+
+        if (nextClose === -1) break;
+
+        if (nextOpen !== -1 && nextOpen < nextClose) {
+          depth++;
+          pos = nextOpen + 4;
+        } else {
+          depth--;
+          if (depth === 0) {
+            lyrics.push(html.substring(tagEnd + 1, nextClose));
+          }
+          pos = nextClose + 6;
+        }
+      }
+
+      searchFrom = pos;
+    }
+  }
+
   let result = lyrics.map(chunk => {
-    // Convert <br> to newlines
     chunk = chunk.replace(/<br\s*\/?>/gi, '\n');
-    // Remove all HTML tags
     chunk = chunk.replace(/<[^>]+>/g, '');
-    // Decode HTML entities
-    chunk = chunk
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#x27;/g, "'")
-      .replace(/&#39;/g, "'")
-      .replace(/&#x2F;/g, '/')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&#8217;/g, "'")
-      .replace(/&#8220;/g, '"')
-      .replace(/&#8221;/g, '"');
+    chunk = decodeHTMLEntities(chunk);
     return chunk;
   }).join('\n');
 
-  // Remove contributor/translation junk
-  result = result
+  return cleanLyricsText(result);
+}
+
+function decodeHTMLEntities(text) {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#8217;/g, "\u2019")
+    .replace(/&#8216;/g, "\u2018")
+    .replace(/&#8220;/g, "\u201C")
+    .replace(/&#8221;/g, "\u201D")
+    .replace(/&#\d+;/g, m => {
+      const code = parseInt(m.slice(2, -1));
+      return String.fromCharCode(code);
+    })
+    .replace(/&#x[0-9a-fA-F]+;/g, m => {
+      const code = parseInt(m.slice(3, -1), 16);
+      return String.fromCharCode(code);
+    });
+}
+
+function cleanLyricsText(text) {
+  return text
     .replace(/^\d+\s*Contributors.*$/gm, '')
     .replace(/^Translations.*$/gm, '')
     .replace(/^Espa[ñn]ol.*$/gm, '')
@@ -700,10 +798,20 @@ function extractLyricsFromHTML(html) {
     .replace(/^Embed$/gm, '')
     .replace(/^You might also like$/gm, '')
     .replace(/^\d+Embed$/gm, '')
-    .replace(/^\s*\n\s*\n\s*\n/gm, '\n\n') // collapse excess blank lines
+    .replace(/^\s*\n\s*\n\s*\n/gm, '\n\n')
     .trim();
+}
 
-  return result;
+function findInPreloadedState(obj, key) {
+  if (!obj || typeof obj !== 'object') return null;
+  if (obj[key] && typeof obj[key] === 'object' && obj[key].plain) return obj[key];
+  for (const val of Object.values(obj)) {
+    if (val && typeof val === 'object') {
+      const found = findInPreloadedState(val, key);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 // ---- Message handler ----
@@ -894,7 +1002,7 @@ async function handleSaveToLibrary(trackInfo) {
 
   // Look up actual artist and title
   const lookupResult = await lookupTrackInfo(trackInfo.name);
-  const { title, artist, album, trackNumber } = lookupResult;
+  const { title, artist, album, trackNumber, artworkFull } = lookupResult;
   console.log(`[background] Final: "${title}" by "${artist}" album: "${album || 'N/A'}" track#: ${trackNumber || 'N/A'}`);
 
   const track = {
@@ -904,6 +1012,7 @@ async function handleSaveToLibrary(trackInfo) {
     artist: artist,
     album: album || '',
     trackNumber: trackNumber || null,
+    artworkFull: artworkFull || '',
     source: trackInfo.source,
     sourceUrl: trackInfo.sourceUrl,
     thumbnail: thumbnailData,

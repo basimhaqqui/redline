@@ -150,7 +150,10 @@ body {
   gap: 0;
   max-height: 160px;
   overflow-y: auto;
-  margin-bottom: 16px;
+}
+
+.playlist-list:empty {
+  display: none;
 }
 
 .playlist-item {
@@ -398,9 +401,6 @@ body {
   opacity: 0.7;
 }
 
-.track-card:hover .track-play-overlay {
-  opacity: 1;
-}
 
 .track-artwork-container {
   position: relative;
@@ -428,18 +428,49 @@ body {
   stroke-width: 0.5;
 }
 
-.track-play-overlay {
+.track-overlay-controls {
   position: absolute;
   bottom: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.track-card:hover .track-overlay-controls {
+  opacity: 1;
+}
+
+.track-like-btn {
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  transition: color 0.15s;
+}
+
+.track-like-btn:hover {
+  color: var(--red);
+}
+
+.track-like-btn.active {
+  color: var(--red);
+}
+
+.track-play-overlay {
   width: 40px;
   height: 40px;
   background: var(--red);
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s;
 }
 
 .track-play-overlay svg {
@@ -489,7 +520,7 @@ body {
 
 .track-table-header {
   display: grid;
-  grid-template-columns: 40px 1fr 180px 140px 60px;
+  grid-template-columns: 40px 1fr 180px 140px 60px 36px;
   align-items: center;
   gap: 16px;
   padding: 8px 16px;
@@ -528,7 +559,7 @@ body {
 
 .track-row {
   display: grid;
-  grid-template-columns: 40px 1fr 180px 140px 60px;
+  grid-template-columns: 40px 1fr 180px 140px 60px 36px;
   align-items: center;
   gap: 16px;
   padding: 8px 16px;
@@ -619,6 +650,32 @@ body {
   color: var(--text-secondary);
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.row-like {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.track-row:hover .row-like,
+.row-like.active {
+  opacity: 1;
+}
+
+.row-like:hover {
+  color: var(--red);
+}
+
+.row-like.active {
+  color: var(--red);
 }
 
 /* ==================== EMPTY STATE ==================== */
@@ -1237,6 +1294,26 @@ body {
   z-index: 99;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.lyrics-bg-layer {
+  z-index: 0;
+}
+
+@keyframes lyricsBgDrift {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(2%, -3%) scale(1.05); }
+  50%  { transform: translate(-2%, 2%) scale(1.02); }
+  75%  { transform: translate(-3%, -1%) scale(1.06); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.lyrics-panel .lyrics-header,
+.lyrics-panel .lyrics-content,
+.lyrics-panel .lyrics-credit {
+  position: relative;
+  z-index: 1;
 }
 
 .lyrics-panel.open {
@@ -1248,6 +1325,21 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 28px 28px 0;
+}
+
+.lyrics-panel.has-bg .lyrics-header h3,
+.lyrics-panel.has-bg .lyrics-content,
+.lyrics-panel.has-bg .close-lyrics {
+  color: #ffffff;
+}
+
+.lyrics-panel.has-bg .lyrics-credit {
+  color: rgba(255, 255, 255, 0.4);
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.lyrics-panel.has-bg .lyrics-credit a {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .lyrics-header h3 {
@@ -1303,6 +1395,24 @@ body {
   color: var(--text-muted);
   font-size: 13px;
   font-family: var(--sans);
+}
+
+.lyrics-line {
+  padding: 4px 0;
+  color: var(--text-muted);
+  transition: color 0.3s, transform 0.3s, font-size 0.3s;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.lyrics-line.active {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.lyrics-line.past {
+  color: var(--text-secondary);
 }
 
 .lyrics-content .lyrics-section {
@@ -1682,4 +1792,270 @@ body {
   font-size: 10px;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* ==================== FULLSCREEN NOW PLAYING ==================== */
+
+.now-playing-full {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0a0a0a;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px;
+  overflow: hidden;
+}
+
+.now-playing-full.open {
+  display: flex;
+}
+
+.npf-bg-layer {
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes npfBgDrift {
+  0%   { transform: translate(0, 0) scale(1); }
+  20%  { transform: translate(-3%, 2%) scale(1.04); }
+  40%  { transform: translate(2%, -3%) scale(1.07); }
+  60%  { transform: translate(-2%, -1%) scale(1.02); }
+  80%  { transform: translate(3%, 2%) scale(1.06); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.npf-close,
+.npf-artwork,
+.npf-info,
+.npf-controls {
+  z-index: 1;
+}
+
+.npf-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.15s;
+}
+
+.npf-close:hover {
+  color: #ffffff;
+}
+
+.npf-artwork {
+  width: min(55vh, 45vw);
+  height: min(55vh, 45vw);
+  max-width: 580px;
+  max-height: 580px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+
+.npf-artwork img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.npf-info {
+  z-index: 1;
+  width: min(500px, 80vw);
+  text-align: left;
+}
+
+.npf-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.npf-info-text {
+  min-width: 0;
+  flex: 1;
+}
+
+#npfLikeTop {
+  flex-shrink: 0;
+}
+
+#npfLikeTop.active {
+  color: var(--red);
+}
+
+#npfLikeTop.active svg {
+  fill: var(--red);
+}
+
+.npf-title {
+  font-family: var(--sans);
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.npf-artist {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+}
+
+.npf-controls {
+  z-index: 1;
+  width: min(500px, 80vw);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.npf-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.npf-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.npf-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.npf-progress-fill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 2px;
+  width: 0%;
+}
+
+.npf-progress-handle {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border-radius: 50%;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.npf-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+
+.npf-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s;
+}
+
+.npf-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.npf-btn.active {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.npf-play-btn {
+  width: 48px;
+  height: 48px;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  transition: transform 0.15s;
+}
+
+.npf-play-btn:hover {
+  transform: scale(1.08);
+}
+
+.npf-play-btn svg {
+  width: 44px;
+  height: 44px;
+}
+
+.npf-play-btn .npf-play-icon {
+  margin-left: 2px;
+}
+
+.npf-extras {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.npf-volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 100%;
+}
+
+.npf-volume-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.npf-volume-fill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 2px;
+  width: 70%;
+}
+
+#npfLike.active {
+  color: var(--red);
+}
+
+#npfLike.active svg {
+  fill: var(--red);
 }
