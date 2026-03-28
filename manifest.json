@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Video to MP3 Downloader",
-  "version": "1.1.0",
-  "description": "Convert YouTube and Twitter/X videos to downloadable MP3 files",
+  "name": "Redline",
+  "version": "2.0.0",
+  "description": "Rip audio from YouTube and Twitter/X videos into your personal music library",
   "permissions": [
     "activeTab",
     "storage",

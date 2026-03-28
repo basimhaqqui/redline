@@ -2,7 +2,7 @@
 
 class DriveSync {
   constructor() {
-    this.FOLDER_NAME = 'VideoToMP3Library';
+    this.FOLDER_NAME = 'RedlineLibrary';
     this.METADATA_FILE = 'library_metadata.json';
     this.folderId = null;
     this.token = null;
