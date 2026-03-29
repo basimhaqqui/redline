@@ -103,35 +103,48 @@ body {
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  margin-bottom: 40px;
+  gap: 2px;
+  margin-bottom: 32px;
 }
 
 .nav-item {
-  display: block;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
   color: var(--text-muted);
   text-decoration: none;
-  font-family: var(--serif);
-  font-size: 16px;
-  font-weight: 400;
-  font-style: italic;
-  transition: color 0.15s;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.15s, background 0.15s;
 }
 
-.nav-item:first-child {
-  border-top: 1px solid var(--border-light);
+.nav-item svg {
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.15s;
 }
 
 .nav-item:hover {
   color: var(--text);
+  background: var(--bg-hover);
+}
+
+.nav-item:hover svg {
+  opacity: 0.8;
 }
 
 .nav-item.active {
   color: var(--text);
-  font-style: normal;
+  background: var(--bg-hover);
   font-weight: 600;
+}
+
+.nav-item.active svg {
+  opacity: 1;
+  color: var(--red);
 }
 
 .sidebar-section h3 {
@@ -382,8 +395,8 @@ body {
 
 .track-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 32px 24px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 36px 32px;
 }
 
 .track-grid.list-view {
@@ -396,11 +409,6 @@ body {
   cursor: pointer;
   transition: opacity 0.15s;
 }
-
-.track-card:hover {
-  opacity: 0.7;
-}
-
 
 .track-artwork-container {
   position: relative;
@@ -415,6 +423,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  position: relative;
 }
 
 .track-artwork img {
@@ -428,15 +437,85 @@ body {
   stroke-width: 0.5;
 }
 
-.track-overlay-controls {
+/* Overlay container */
+.track-center-overlay {
   position: absolute;
-  bottom: 0;
-  right: 0;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Hover play button — solid circle like Spotify */
+.track-hover-play {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--red);
   display: flex;
   align-items: center;
-  gap: 0;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(6px) scale(0.9);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+}
+
+.track-hover-play svg {
+  width: 18px;
+  height: 18px;
+  color: white;
+  margin-left: 2px;
+}
+
+.track-card:hover .track-hover-play {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.track-card.now-playing .track-hover-play {
+  display: none;
+}
+
+/* Spotify-style playing button — bottom right of artwork */
+.track-playing-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 3;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.track-playing-btn svg {
+  width: 18px;
+  height: 18px;
+  color: white;
+}
+
+.track-playing-btn:hover {
+  transform: scale(1.08);
+}
+
+/* Like button on hover */
+.track-overlay-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   opacity: 0;
   transition: opacity 0.15s;
+  z-index: 3;
 }
 
 .track-card:hover .track-overlay-controls {
@@ -444,40 +523,84 @@ body {
 }
 
 .track-like-btn {
-  width: 32px;
-  height: 32px;
-  background: rgba(0, 0, 0, 0.6);
+  width: 30px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   border: none;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: #ffffff;
-  transition: color 0.15s;
+  transition: color 0.15s, transform 0.15s;
 }
 
 .track-like-btn:hover {
   color: var(--red);
+  transform: scale(1.1);
 }
 
 .track-like-btn.active {
   color: var(--red);
 }
 
-.track-play-overlay {
-  width: 40px;
-  height: 40px;
-  background: var(--red);
+/* Now Playing Indicator — for list view */
+.now-playing-indicator {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 14px;
+}
+
+.now-playing-indicator span {
+  display: block;
+  width: 2.5px;
+  background: #c0392b;
+  border-radius: 1px;
+  animation: eqBounce 1s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.now-playing-indicator span:nth-child(1) { height: 60%; animation-delay: 0s; }
+.now-playing-indicator span:nth-child(2) { height: 100%; animation-delay: 0.15s; }
+.now-playing-indicator span:nth-child(3) { height: 40%; animation-delay: 0.3s; }
+
+@keyframes eqBounce {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+/* Play burst animation (Twitter-like) */
+.play-burst {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 4;
+  pointer-events: none;
 }
 
-.track-play-overlay svg {
+.play-burst svg {
+  width: 40px;
+  height: 40px;
   color: white;
-  margin-left: 2px;
-  width: 14px;
-  height: 14px;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+  animation: playBurst 0.5s ease-out forwards;
+}
+
+@keyframes playBurst {
+  0% { transform: scale(0.3); opacity: 1; }
+  40% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+
+.track-card.now-playing .track-name,
+.track-row.now-playing .track-row-name {
+  color: #c0392b;
 }
 
 .track-name {
@@ -1838,20 +1961,77 @@ body {
   z-index: 1;
 }
 
-.npf-close {
+.npf-top-bar {
   position: absolute;
-  top: 24px;
-  right: 24px;
-  background: none;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  z-index: 5;
+}
+
+.npf-close {
+  background: rgba(255, 255, 255, 0.08);
   border: none;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  padding: 8px;
-  transition: color 0.15s;
+  padding: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
 }
 
 .npf-close:hover {
   color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+#npfLyricsBtn {
+  transition: color 0.15s, opacity 0.15s;
+}
+
+#npfLyricsBtn.active {
+  color: var(--red);
+}
+
+/* Fullscreen lyrics overlay */
+.npf-lyrics {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(20px);
+  z-index: 3;
+  display: none;
+  flex-direction: column;
+  padding: 80px 32px 32px;
+  overflow-y: auto;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.npf-lyrics.open {
+  display: flex;
+}
+
+.npf-lyrics-content {
+  font-size: 16px;
+  line-height: 2;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: pre-wrap;
+  font-family: var(--sans);
+}
+
+.npf-lyrics-content .lyrics-placeholder,
+.npf-lyrics-content .lyrics-error {
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
 }
 
 .npf-artwork {

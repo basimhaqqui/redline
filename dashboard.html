@@ -15,9 +15,27 @@
       </div>
 
       <nav class="nav">
-        <a href="#" class="nav-item active" data-view="library">All Songs</a>
-        <a href="#" class="nav-item" data-view="favorites">Liked</a>
-        <a href="#" class="nav-item" data-view="recent">Recent</a>
+        <a href="#" class="nav-item active" data-view="library">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 18V5l12-2v13"></path>
+            <circle cx="6" cy="18" r="3"></circle>
+            <circle cx="18" cy="16" r="3"></circle>
+          </svg>
+          All Songs
+        </a>
+        <a href="#" class="nav-item" data-view="favorites">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          Liked
+        </a>
+        <a href="#" class="nav-item" data-view="recent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Recent
+        </a>
       </nav>
 
       <div class="sidebar-section">
@@ -80,6 +98,7 @@
           <button id="rescanBtn" class="rescan-btn">Scan Info</button>
           <button id="importBtn" class="import-btn">Import</button>
           <input type="file" id="fileInput" accept=".mp3,audio/*" multiple hidden>
+          <input type="file" id="artworkInput" accept="image/*" hidden>
         </div>
       </header>
 
@@ -382,14 +401,24 @@
 
     <!-- Fullscreen Now Playing -->
     <div class="now-playing-full" id="nowPlayingFull">
-      <button class="npf-close" id="npfClose">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="4 14 10 14 10 20"></polyline>
-          <polyline points="20 10 14 10 14 4"></polyline>
-          <line x1="14" y1="10" x2="21" y2="3"></line>
-          <line x1="3" y1="21" x2="10" y2="14"></line>
-        </svg>
-      </button>
+      <div class="npf-top-bar">
+        <button class="npf-close" id="npfClose">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+        </button>
+        <button class="npf-btn" id="npfLyricsBtn" title="Lyrics">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 6v11"></path>
+            <circle cx="6" cy="17" r="3"></circle>
+            <path d="M9 6l6-2v4"></path>
+            <path d="M18 8h-4M18 11h-3M18 14h-4"></path>
+          </svg>
+        </button>
+      </div>
       <div class="npf-artwork" id="npfArtwork"></div>
       <div class="npf-info">
         <div class="npf-info-row">
@@ -468,6 +497,13 @@
           </svg>
         </div>
       </div>
+
+      <!-- Fullscreen Lyrics Overlay -->
+      <div class="npf-lyrics" id="npfLyrics">
+        <div class="npf-lyrics-content" id="npfLyricsContent">
+          <p class="lyrics-placeholder">Loading lyrics...</p>
+        </div>
+      </div>
     </div>
 
     <!-- Lyrics Panel -->
@@ -541,6 +577,14 @@
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
         </svg>
         Rename
+      </button>
+      <button class="context-item" data-action="changeArtwork">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+        Change Artwork
       </button>
       <button class="context-item" data-action="favorite">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

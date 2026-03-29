@@ -485,13 +485,41 @@ class MusicPlayer {
     // Fullscreen now playing
     document.getElementById('expandBtn').addEventListener('click', () => {
       if (this.currentTrack) {
+        document.getElementById('nowPlayingFull').classList.add('open');
         this.updateNowPlayingBg();
         this.updateNpfControls();
-        document.getElementById('nowPlayingFull').classList.add('open');
+        // Enter true browser fullscreen
+        document.documentElement.requestFullscreen().catch(() => {});
       }
     });
-    document.getElementById('npfClose').addEventListener('click', () => {
+
+    const closeFullscreen = () => {
       document.getElementById('nowPlayingFull').classList.remove('open');
+      document.getElementById('npfLyrics').classList.remove('open');
+      document.getElementById('npfLyricsBtn').classList.remove('active');
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+
+    document.getElementById('npfClose').addEventListener('click', closeFullscreen);
+
+    // Exit fullscreen view when browser exits fullscreen (e.g. Esc key)
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && document.getElementById('nowPlayingFull').classList.contains('open')) {
+        document.getElementById('nowPlayingFull').classList.remove('open');
+        document.getElementById('npfLyrics').classList.remove('open');
+        document.getElementById('npfLyricsBtn').classList.remove('active');
+      }
+    });
+
+    // Fullscreen lyrics toggle
+    document.getElementById('npfLyricsBtn').addEventListener('click', () => {
+      const panel = document.getElementById('npfLyrics');
+      const btn = document.getElementById('npfLyricsBtn');
+      const isOpen = panel.classList.toggle('open');
+      btn.classList.toggle('active', isOpen);
+      if (isOpen) this.loadNpfLyrics();
     });
 
     // NPF controls
@@ -797,8 +825,8 @@ class MusicPlayer {
 
     for (const track of tracks) {
       const needsInfo = !track.artist || !track.title;
-      const hasGeniusThumb = track.thumbnail && track.thumbnail.includes('images.genius.com');
-      const needsAlbum = !track.album || !track.trackNumber || !hasGeniusThumb;
+      const hasGoodThumb = track.customArtwork || (track.thumbnail && track.thumbnail.includes('images.genius.com'));
+      const needsAlbum = !track.album || !track.trackNumber || !hasGoodThumb;
 
       if (!needsInfo && !needsAlbum) continue;
 
@@ -818,8 +846,10 @@ class MusicPlayer {
             track.name = `${resp.artist} - ${resp.title}`;
             if (resp.album) track.album = resp.album;
             if (resp.trackNumber) track.trackNumber = resp.trackNumber;
-            if (resp.thumbnail) track.thumbnail = resp.thumbnail;
-            if (resp.artworkFull) track.artworkFull = resp.artworkFull;
+            if (!track.customArtwork) {
+              if (resp.thumbnail) track.thumbnail = resp.thumbnail;
+              if (resp.artworkFull) track.artworkFull = resp.artworkFull;
+            }
             await this.db.updateTrack(track);
             continue; // already got album from full lookup
           }
@@ -841,8 +871,10 @@ class MusicPlayer {
           let updated = false;
           if (resp.album) { track.album = resp.album; updated = true; }
           if (resp.trackNumber) { track.trackNumber = resp.trackNumber; updated = true; }
-          if (resp.thumbnail) { track.thumbnail = resp.thumbnail; updated = true; }
-          if (resp.artworkFull) { track.artworkFull = resp.artworkFull; updated = true; }
+          if (!track.customArtwork) {
+            if (resp.thumbnail) { track.thumbnail = resp.thumbnail; updated = true; }
+            if (resp.artworkFull) { track.artworkFull = resp.artworkFull; updated = true; }
+          }
           if (updated) await this.db.updateTrack(track);
         } catch (e) {
           console.log('Rescan album failed for:', track.name, e);
@@ -855,8 +887,9 @@ class MusicPlayer {
   renderTrackCard(track) {
     const thumbnail = track.artworkFull || track.thumbnail || '';
     const { title, artist } = this.splitTrackName(track);
+    const isPlaying = this.currentTrack && this.currentTrack.id === track.id;
     return `
-      <div class="track-card" data-id="${track.id}">
+      <div class="track-card${isPlaying ? ' now-playing' : ''}" data-id="${track.id}">
         <div class="track-artwork-container">
           <div class="track-artwork">
             ${thumbnail ?
@@ -867,18 +900,21 @@ class MusicPlayer {
                 <circle cx="18" cy="16" r="3"></circle>
               </svg>`
             }
+            <div class="track-center-overlay">
+              <div class="track-hover-play">
+                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+              </div>
+            </div>
+            ${isPlaying ? `<div class="track-playing-btn">
+              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            </div>` : ''}
           </div>
           <div class="track-overlay-controls">
             <button class="track-like-btn${track.favorite ? ' active' : ''}" data-like-id="${track.id}">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="${track.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="${track.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
             </button>
-            <div class="track-play-overlay">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-              </svg>
-            </div>
           </div>
         </div>
         <div class="track-name">${title}</div>
@@ -893,9 +929,10 @@ class MusicPlayer {
     const dateAdded = track.dateAdded ? this.formatDateAdded(track.dateAdded) : '';
     const duration = track.duration ? this.formatDuration(track.duration) : '-';
     const album = track.album || '';
+    const isPlaying = this.currentTrack && this.currentTrack.id === track.id;
     return `
-      <div class="track-row track-card" data-id="${track.id}">
-        <span class="col-num">${index}</span>
+      <div class="track-row track-card${isPlaying ? ' now-playing' : ''}" data-id="${track.id}">
+        <span class="col-num">${isPlaying ? `<div class="now-playing-indicator"><span></span><span></span><span></span></div>` : index}</span>
         <div class="col-title">
           <div class="track-row-art">
             ${thumbnail ?
@@ -950,7 +987,23 @@ class MusicPlayer {
       card.addEventListener('click', async () => {
         const id = parseInt(card.dataset.id);
 
-        // Auto-queue all tracks in the current view (like Spotify Liked Songs)
+        // If this track is already playing, toggle pause/play
+        if (this.currentTrack && this.currentTrack.id === id) {
+          this.togglePlay();
+          return;
+        }
+
+        // Show play burst animation
+        const artwork = card.querySelector('.track-artwork');
+        if (artwork) {
+          const burst = document.createElement('div');
+          burst.className = 'play-burst';
+          burst.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>';
+          artwork.appendChild(burst);
+          setTimeout(() => burst.remove(), 500);
+        }
+
+        // Auto-queue all tracks in the current view
         const allCards = container.querySelectorAll('.track-card');
         const allIds = Array.from(allCards).map(c => parseInt(c.dataset.id));
         this.queue = allIds;
@@ -1035,6 +1088,12 @@ class MusicPlayer {
     this.isPlaying = true;
     this.updatePlayPauseUI();
     this.updateNowPlaying();
+    this.updateNowPlayingCards();
+
+    // Refresh fullscreen lyrics if open
+    if (document.getElementById('npfLyrics').classList.contains('open')) {
+      this.loadNpfLyrics();
+    }
 
     // Add to recent
     await this.db.addToRecent(id);
@@ -1042,6 +1101,43 @@ class MusicPlayer {
     // Update play count
     track.playCount = (track.playCount || 0) + 1;
     await this.db.updateTrack(track);
+  }
+
+  updateNowPlayingCards() {
+    // Update all track cards to show/hide pause button on the current playing track
+    document.querySelectorAll('.track-card:not(.track-row)').forEach(card => {
+      const id = parseInt(card.dataset.id);
+      const isPlaying = this.currentTrack && this.currentTrack.id === id;
+      card.classList.toggle('now-playing', isPlaying);
+
+      // Add or remove the playing button
+      const existing = card.querySelector('.track-playing-btn');
+      if (isPlaying && !existing) {
+        const btn = document.createElement('div');
+        btn.className = 'track-playing-btn';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+        card.querySelector('.track-artwork-container').appendChild(btn);
+      } else if (!isPlaying && existing) {
+        existing.remove();
+      }
+    });
+
+    // Update list view rows
+    document.querySelectorAll('.track-row').forEach(row => {
+      const id = parseInt(row.dataset.id);
+      const isPlaying = this.currentTrack && this.currentTrack.id === id;
+      row.classList.toggle('now-playing', isPlaying);
+
+      const numEl = row.querySelector('.col-num');
+      if (!numEl) return;
+      if (isPlaying) {
+        numEl.innerHTML = `<div class="now-playing-indicator"><span></span><span></span><span></span></div>`;
+      } else {
+        // Restore original number
+        const allRows = Array.from(row.parentElement.querySelectorAll('.track-row'));
+        numEl.textContent = allRows.indexOf(row) + 1;
+      }
+    });
   }
 
   togglePlay() {
@@ -1066,6 +1162,23 @@ class MusicPlayer {
 
     // Sync fullscreen play/pause
     this.updateNpfControls();
+
+    // Sync card playing button (pause/play on artwork)
+    this.updateCardPlayingBtn();
+  }
+
+  updateCardPlayingBtn() {
+    if (!this.currentTrack) return;
+    const card = document.querySelector(`.track-card[data-id="${this.currentTrack.id}"]`);
+    if (!card) return;
+    const btn = card.querySelector('.track-playing-btn');
+    if (!btn) return;
+
+    if (this.isPlaying) {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+    } else {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>';
+    }
   }
 
   updateNowPlaying() {
@@ -1505,10 +1618,48 @@ class MusicPlayer {
       case 'favorite':
         await this.toggleFavorite(this.contextTrack);
         break;
+      case 'changeArtwork':
+        this.changeArtwork(this.contextTrack);
+        break;
       case 'delete':
         await this.deleteTrack(this.contextTrack);
         break;
     }
+  }
+
+  changeArtwork(trackId) {
+    const input = document.getElementById('artworkInput');
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const track = await this.db.getTrack(trackId);
+      if (!track) return;
+
+      track.thumbnail = dataUrl;
+      track.artworkFull = dataUrl;
+      track.customArtwork = true;
+      await this.db.updateTrack(track);
+
+      // Refresh UI
+      this.loadLibrary();
+      if (this.currentTrack && this.currentTrack.id === trackId) {
+        this.currentTrack.thumbnail = dataUrl;
+        this.currentTrack.artworkFull = dataUrl;
+        this.currentTrack.customArtwork = true;
+        this.updateNowPlaying();
+      }
+
+      input.value = '';
+    };
+    input.click();
   }
 
   async toggleFavorite(trackId) {
@@ -1844,6 +1995,33 @@ class MusicPlayer {
       console.log('Lyrics error:', err);
       content.innerHTML = `<p class="lyrics-error">Lyrics not found for this track</p>`;
       credit.innerHTML = '';
+    }
+  }
+
+  async loadNpfLyrics() {
+    const content = document.getElementById('npfLyricsContent');
+    if (!this.currentTrack) {
+      content.innerHTML = '<p class="lyrics-placeholder">No track playing</p>';
+      return;
+    }
+
+    const { title, artist } = this.splitTrackName(this.currentTrack);
+    content.innerHTML = '<p class="lyrics-placeholder">Loading lyrics...</p>';
+
+    try {
+      const resp = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(
+          { action: 'fetchLyrics', title, artist },
+          (r) => {
+            if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+            else if (!r || !r.success) reject(new Error(r?.error || 'Failed'));
+            else resolve(r.data);
+          }
+        );
+      });
+      content.textContent = resp.lyrics;
+    } catch (err) {
+      content.innerHTML = '<p class="lyrics-error">Lyrics not found</p>';
     }
   }
 

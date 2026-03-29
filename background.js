@@ -128,8 +128,15 @@ async function saveTrack(track) {
 // Convert a URL to a base64 data URL
 async function urlToDataUrl(url, forceMime = null) {
   const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const blob = await response.blob();
   console.log(`[background] Fetched ${url} - type: ${blob.type}, size: ${blob.size}`);
+
+  // YouTube returns a tiny ~1-2KB default image when maxresdefault doesn't exist
+  // Reject small images so we can fall back to hqdefault
+  if (blob.type && blob.type.startsWith('image/') && blob.size < 5000) {
+    throw new Error('Image too small, likely a placeholder');
+  }
 
   // If the blob has no type or wrong type, force the correct MIME
   const finalBlob = forceMime && (!blob.type || !blob.type.startsWith('audio/'))
