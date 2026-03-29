@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getYouTubeThumbnail(videoId) {
-    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
   }
 
   // Open dashboard

@@ -181,7 +181,7 @@
 
         if (isYouTube) {
           const videoId = extractYouTubeId(videoUrl);
-          thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+          thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
         } else if (isTwitter) {
           const tweetText = extractTweetText();
           if (tweetText) trackName = tweetText;
@@ -561,7 +561,7 @@
 
         const result = resp.data;
         const videoId = extractYouTubeId(videoUrl);
-        const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+        const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
 
         // Build chapters with start/end times
         const tracksToSave = chapters.map((ch, i) => ({

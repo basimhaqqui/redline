@@ -46,7 +46,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
     // For Twitter, try to get the tweet text and video thumbnail
     let trackName = result.filename.replace(/\.[^/.]+$/, '');
-    let thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+    let thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
 
     if (isTwitter) {
       try {
@@ -218,8 +218,8 @@ async function fetchGeniusAlbum(songId) {
   const data = await resp.json();
   const song = data?.response?.song;
   const album = song?.album;
-  const thumbnail = song?.song_art_image_thumbnail_url || '';
   const artworkFull = song?.song_art_image_url || '';
+  const thumbnail = artworkFull || song?.song_art_image_thumbnail_url || '';
 
   if (!album) return { name: '', trackNumber: null, thumbnail, artworkFull };
 
@@ -538,20 +538,26 @@ async function handleSaveAlbum(albumInfo) {
     reader.readAsDataURL(typedBlob);
   });
 
-  // Fetch thumbnail
+  // Fetch thumbnail — try maxresdefault, fall back to hqdefault
   let thumbnailData = null;
-  if (albumInfo.thumbnail) {
+  const albumThumbSources = [
+    albumInfo.thumbnail,
+    albumInfo.thumbnail?.replace('maxresdefault', 'hqdefault'),
+  ].filter(Boolean);
+  for (const src of albumThumbSources) {
     try {
-      thumbnailData = await urlToDataUrl(albumInfo.thumbnail);
+      thumbnailData = await urlToDataUrl(src);
+      break;
     } catch (e) {
-      thumbnailData = albumInfo.thumbnail;
+      console.log(`[background] Album thumb failed for ${src.slice(0, 80)}`);
     }
   }
+  if (!thumbnailData && albumInfo.thumbnail) thumbnailData = albumInfo.thumbnail;
 
   // Save each chapter as a separate track
   for (const chapterTrack of albumInfo.tracks) {
     const lookupRes = await lookupTrackInfo(chapterTrack.title);
-    const { title, artist, album, trackNumber } = lookupRes;
+    const { title, artist, album, trackNumber, artworkFull } = lookupRes;
 
     const track = {
       name: artist ? `${artist} - ${title}` : title,
@@ -560,6 +566,7 @@ async function handleSaveAlbum(albumInfo) {
       artist: artist,
       album: album || '',
       trackNumber: trackNumber || null,
+      artworkFull: artworkFull || '',
       source: albumInfo.source,
       sourceUrl: albumInfo.sourceUrl,
       thumbnail: thumbnailData,
@@ -1019,20 +1026,31 @@ async function handleSaveToLibrary(trackInfo) {
     throw new Error('Failed to download audio file');
   }
 
-  // Fetch thumbnail as base64 (so it works offline)
-  let thumbnailData = null;
-  if (trackInfo.thumbnail) {
-    try {
-      thumbnailData = await urlToDataUrl(trackInfo.thumbnail);
-    } catch (err) {
-      console.log('[background] Could not fetch thumbnail, using URL:', err.message);
-      thumbnailData = trackInfo.thumbnail; // Fallback to URL
-    }
-  }
-
-  // Look up actual artist and title
+  // Look up actual artist and title (do this first so we can use Genius artwork)
   const lookupResult = await lookupTrackInfo(trackInfo.name);
   const { title, artist, album, trackNumber, artworkFull } = lookupResult;
+
+  // Fetch the best available thumbnail as base64 (so it works offline)
+  // Priority: Genius full artwork > provided thumbnail > fallback
+  let thumbnailData = null;
+  const thumbSources = [
+    artworkFull,
+    trackInfo.thumbnail,
+    // If YouTube maxresdefault fails, try hqdefault
+    trackInfo.thumbnail?.replace('maxresdefault', 'hqdefault'),
+  ].filter(Boolean);
+
+  for (const src of thumbSources) {
+    try {
+      thumbnailData = await urlToDataUrl(src);
+      break;
+    } catch (err) {
+      console.log(`[background] Thumbnail fetch failed for ${src.slice(0, 80)}:`, err.message);
+    }
+  }
+  if (!thumbnailData && trackInfo.thumbnail) {
+    thumbnailData = trackInfo.thumbnail; // Last resort: use raw URL
+  }
   console.log(`[background] Final: "${title}" by "${artist}" album: "${album || 'N/A'}" track#: ${trackNumber || 'N/A'}`);
 
   const track = {

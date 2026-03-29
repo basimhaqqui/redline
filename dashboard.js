@@ -853,7 +853,7 @@ class MusicPlayer {
   }
 
   renderTrackCard(track) {
-    const thumbnail = track.thumbnail || '';
+    const thumbnail = track.artworkFull || track.thumbnail || '';
     const { title, artist } = this.splitTrackName(track);
     return `
       <div class="track-card" data-id="${track.id}">
@@ -888,7 +888,7 @@ class MusicPlayer {
   }
 
   renderTrackRow(track, index) {
-    const thumbnail = track.thumbnail || '';
+    const thumbnail = track.artworkFull || track.thumbnail || '';
     const { title, artist } = this.splitTrackName(track);
     const dateAdded = track.dateAdded ? this.formatDateAdded(track.dateAdded) : '';
     const duration = track.duration ? this.formatDuration(track.duration) : '-';
@@ -1076,8 +1076,9 @@ class MusicPlayer {
     document.getElementById('nowPlayingArtist').textContent = artist || this.currentTrack.source || 'Local File';
 
     const artContainer = document.getElementById('nowPlayingArt');
-    if (this.currentTrack.thumbnail) {
-      artContainer.innerHTML = `<img src="${this.currentTrack.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
+    const artSrc = this.currentTrack.artworkFull || this.currentTrack.thumbnail;
+    if (artSrc) {
+      artContainer.innerHTML = `<img src="${artSrc}" style="width:100%;height:100%;object-fit:cover;">`;
     }
 
     // Update favorite button
@@ -1657,8 +1658,8 @@ class MusicPlayer {
         <div class="track-number">${i + 1}</div>
         <div class="track-list-info">
           <div class="track-list-art">
-            ${track.thumbnail ?
-              `<img src="${track.thumbnail}">` :
+            ${(track.artworkFull || track.thumbnail) ?
+              `<img src="${track.artworkFull || track.thumbnail}">` :
               `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M9 18V5l12-2v13"></path>
               </svg>`
@@ -1763,8 +1764,8 @@ class MusicPlayer {
     if (this.currentTrack) {
       nowPlaying.innerHTML = `
         <div class="queue-track-art">
-          ${this.currentTrack.thumbnail ?
-            `<img src="${this.currentTrack.thumbnail}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">` :
+          ${(this.currentTrack.artworkFull || this.currentTrack.thumbnail) ?
+            `<img src="${this.currentTrack.artworkFull || this.currentTrack.thumbnail}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">` :
             `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M9 18V5l12-2v13"></path>
             </svg>`
@@ -1786,8 +1787,8 @@ class MusicPlayer {
         queueList.innerHTML = tracks.filter(t => t).map(track => `
           <div class="queue-track" data-id="${track.id}">
             <div class="queue-track-art">
-              ${track.thumbnail ?
-                `<img src="${track.thumbnail}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">` :
+              ${(track.artworkFull || track.thumbnail) ?
+                `<img src="${track.artworkFull || track.thumbnail}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">` :
                 `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M9 18V5l12-2v13"></path>
                 </svg>`
