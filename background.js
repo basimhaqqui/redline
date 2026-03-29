@@ -955,9 +955,10 @@ async function handleConvert(videoUrl, customInstance) {
         if (errorCode.includes('auth.')) {
           continue;
         }
-        if (errorCode.includes('content.') || errorCode.includes('link.') || errorCode.includes('youtube.')) {
+        if (errorCode.includes('content.') || errorCode.includes('link.')) {
           throw new Error(lastError);
         }
+        // youtube.login means this instance's cookies expired — try the next one
         continue;
       }
 
@@ -986,6 +987,32 @@ async function handleConvert(videoUrl, customInstance) {
       console.log(`[background] ${instance} failed:`, err.message);
       continue;
     }
+  }
+
+  // Fallback: try self-hosted yt-dlp API
+  try {
+    console.log('[background] All Cobalt instances failed, trying yt-dlp fallback...');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+
+    const response = await fetch('https://redline-api-fy7t.onrender.com/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ url: videoUrl }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+    const data = await response.json();
+
+    if (data.status === 'tunnel' && data.url) {
+      return { downloadUrl: data.url, filename: data.filename || 'audio', instance: 'redline-api' };
+    }
+
+    lastError = data.error || 'yt-dlp fallback failed';
+  } catch (err) {
+    lastError = `yt-dlp fallback: ${err.message}`;
+    console.log('[background] yt-dlp fallback failed:', err.message);
   }
 
   throw new Error(`All servers failed. Last: ${lastError}`);
