@@ -499,6 +499,14 @@ function pickBestGeniusMatch(hits, query) {
     // Penalize if title doesn't appear at all
     if (titleWordsMatched === 0) score -= 5;
 
+    // Penalize non-English results (Spanish, Portuguese, etc.)
+    const langTag = song.language || '';
+    if (langTag && langTag !== 'en') score -= 4;
+
+    // Penalize translations (title contains translation markers)
+    const fullTitle = song.full_title || '';
+    if (/traducci[oó]n|traduç[aã]o|traduction/i.test(fullTitle)) score -= 6;
+
     if (score > bestScore) {
       bestScore = score;
       bestHit = hit;
