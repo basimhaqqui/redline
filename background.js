@@ -80,14 +80,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 const FALLBACK_INSTANCES = [
+  'https://cobaltapi.squair.xyz/',
   'https://cobaltapi.kittycat.boo/',
   'https://dog.kittycat.boo/',
   'https://fox.kittycat.boo/',
-  'https://api.cobalt.blackcat.sweeux.org/',
+  'https://cobaltapi.cjs.nz/',
   'https://api.cobalt.liubquanti.click/',
-  'https://cobaltapi.squair.xyz/',
-  'https://api.dl.woof.monster/',
-  'https://cobaltapi.cjs.nz/'
+  'https://api.cobalt.blackcat.sweeux.org/',
 ];
 
 // ---- IndexedDB helpers (runs in service worker context) ----
@@ -862,6 +861,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // ---- Convert video URL to MP3 download URL ----
 
+function cobaltErrorMessage(code, status) {
+  const messages = {
+    'error.api.content.video.unavailable': 'This video is unavailable or private',
+    'error.api.content.video.live': "Can't download live streams",
+    'error.api.content.video.age': 'This video is age-restricted',
+    'error.api.content.video.region': 'This video is region-locked',
+    'error.api.content.post.unavailable': 'This post is unavailable or private',
+    'error.api.link.invalid': 'Invalid or unsupported URL',
+    'error.api.link.unsupported': 'This platform is not supported',
+    'error.api.rate_exceeded': 'Rate limited — try again in a moment',
+    'error.api.content.too_long': 'Video is too long to process',
+    'error.api.youtube.login': 'YouTube is currently blocking all downloads. This is a platform-wide issue — try again later.',
+    'error.api.auth.jwt.missing': 'This server requires an API key',
+    'error.api.youtube.decipher': 'YouTube blocked this request — try again later',
+    'error.api.youtube.token_expired': 'YouTube session expired — try again',
+  };
+  if (code && messages[code]) return messages[code];
+  if (code && code.startsWith('error.api.content.')) return 'This content cannot be downloaded';
+  if (code && code.startsWith('error.api.youtube.')) return 'YouTube blocked this video';
+  return null;
+}
+
 async function handleConvert(videoUrl, customInstance) {
   let instances = [];
 
@@ -880,9 +901,13 @@ async function handleConvert(videoUrl, customInstance) {
 
   let lastError = '';
 
+  console.log(`[background] Converting: ${videoUrl}`);
+  console.log(`[background] Trying ${instances.length} instances`);
+
   for (const instance of instances) {
     try {
       const apiUrl = instance.endsWith('/') ? instance : instance + '/';
+      console.log(`[background] Trying: ${apiUrl}`);
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
@@ -904,16 +929,21 @@ async function handleConvert(videoUrl, customInstance) {
 
       clearTimeout(timeout);
 
-      if (!response.ok) {
-        lastError = `${new URL(apiUrl).hostname}: HTTP ${response.status}`;
-        continue;
-      }
+      const data = await response.json().catch(() => null);
+      console.log(`[background] ${new URL(apiUrl).hostname} [${response.status}]:`, data);
 
-      const data = await response.json();
-      console.log(`[background] ${apiUrl} responded:`, data);
-
-      if (data.status === 'error') {
-        lastError = `${new URL(apiUrl).hostname}: ${data.error?.code || 'API error'}`;
+      if (!response.ok || data?.status === 'error') {
+        const errorCode = data?.error?.code || '';
+        const friendlyMsg = cobaltErrorMessage(errorCode, response.status);
+        lastError = friendlyMsg || `${new URL(apiUrl).hostname}: HTTP ${response.status}`;
+        // If the error is about the content itself, no point trying other instances
+        // Skip to next instance for auth errors, bail entirely for content errors
+        if (errorCode.includes('auth.')) {
+          continue;
+        }
+        if (errorCode.includes('content.') || errorCode.includes('link.') || errorCode.includes('youtube.')) {
+          throw new Error(lastError);
+        }
         continue;
       }
 
