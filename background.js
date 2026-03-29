@@ -155,6 +155,8 @@ async function urlToDataUrl(url, forceMime = null) {
 
 function cleanTrackName(name) {
   let cleaned = name
+    // Remove Cobalt/yt-dlp appended " - UploaderName" (last segment when 3+ dashes)
+    .replace(/^(.+[-–—].+)\s*[-–—]\s*([^-–—]{1,40})$/, '$1')
     // Remove common YouTube suffixes
     .replace(/\s*\(official\s*(music\s*)?video\)/gi, '')
     .replace(/\s*\(official\s*audio\)/gi, '')
