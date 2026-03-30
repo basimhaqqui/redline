@@ -2021,17 +2021,19 @@ body {
 }
 
 .npf-lyrics-content {
-  font-size: 16px;
-  line-height: 2;
-  color: rgba(255, 255, 255, 0.75);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.8;
+  color: #ffffff;
+  letter-spacing: -0.01em;
   white-space: pre-wrap;
-  font-family: var(--sans);
 }
 
 .npf-lyrics-content .lyrics-placeholder,
 .npf-lyrics-content .lyrics-error {
   color: rgba(255, 255, 255, 0.3);
   font-style: italic;
+  font-size: 14px;
 }
 
 .npf-artwork {
