@@ -25,11 +25,13 @@ Your personal music library, built from YouTube and Twitter/X. Rip audio, organi
 
 [![How to Install](https://img.youtube.com/vi/b8E22WYvZfg/maxresdefault.jpg)](https://youtu.be/b8E22WYvZfg)
 
-1. Download or clone this repository
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable **Developer mode** (top-right toggle)
-4. Click **Load unpacked** and select the extension folder
-5. The Redline icon will appear in your toolbar
+1. Go to the [Redline GitHub repo](https://github.com/basimhaqqui/redline)
+2. Click the green **"Code"** button → **"Download ZIP"**
+3. Unzip the downloaded folder (right-click → **Extract All** on Windows, double-click on Mac)
+4. Open Chrome and go to `chrome://extensions/`
+5. Enable **Developer mode** (top-right toggle)
+6. Click **Load unpacked** and select the unzipped folder
+7. Pin Redline from the extensions menu and you're good to go
 
 ## Usage
 
