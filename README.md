@@ -2,6 +2,10 @@
 
 Your personal music library, built from YouTube and Twitter/X. Rip audio, organize tracks, and play them back — all from your browser.
 
+### Demo
+
+[![Redline Demo](https://img.youtube.com/vi/_jLQ5LlKXXM/maxresdefault.jpg)](https://youtu.be/_jLQ5LlKXXM)
+
 ## Features
 
 - **One-click audio ripping** from YouTube videos, Shorts, and Twitter/X posts (320kbps MP3)
