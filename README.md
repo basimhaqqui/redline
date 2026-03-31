@@ -19,12 +19,6 @@ Your personal music library, built from YouTube and Twitter/X. Rip audio, organi
 
 ## Install
 
-### Chrome Web Store
-
-*Pending review* — will be available soon at the Chrome Web Store.
-
-### Manual Install
-
 1. Download or clone this repository
 2. Open Chrome and go to `chrome://extensions/`
 3. Enable **Developer mode** (top-right toggle)
@@ -84,4 +78,4 @@ Please respect copyright laws and only download content you have permission to u
 
 ## License
 
-MIT
+GPL-3.0
